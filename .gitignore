@@ -1,5 +1,19 @@
+# dependencies
 node_modules/
-.next/
+
+# build output — never commit, Netlify rebuilds it
 dist/
-build/
+
+# env files — keep keys out of git entirely
+.env
+.env.*
+!.env.example
+
+# logs & editor cruft
 *.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+.next/
+build/
