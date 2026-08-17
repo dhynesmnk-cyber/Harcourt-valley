@@ -1,19 +1,26 @@
-# dependencies
-node_modules/
+# Dependencies
+node_modules
 
-# build output — never commit, Netlify rebuilds it
-dist/
+# Build output
+dist
+dist-ssr
 
-# env files — keep keys out of git entirely
+# Local env & editor
+*.local
 .env
 .env.*
-!.env.example
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
 
-# logs & editor cruft
+# Logs
 *.log
 npm-debug.log*
-.DS_Store
-.vscode/
-.idea/
+
+# Vite cache
+.vite
+node_modules/
 .next/
+dist/
 build/
