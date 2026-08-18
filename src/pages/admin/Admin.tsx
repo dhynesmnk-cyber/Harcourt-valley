@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fmtDate, fmtDateLong, timeAgo, type Lead } from "../../lib/data";
 import { useApplyAppearance, useStore } from "../../lib/store";
+import { useAuth } from "../../lib/auth";
 import { Wordmark } from "../../components/chrome";
 import { ArrowRight, CloseIcon, MailIcon, MenuIcon, SendIcon, TypeChip, Tick } from "../../components/ui";
 import { CalendarView, KanbanView } from "./Pipeline";
@@ -146,44 +147,87 @@ function Glyph({ tab }: { tab: Tab }) {
   }
 }
 
-/* ---------------- sign-in gate (demo magic link) ---------------- */
+/* ---------------- sign-in gate (real Supabase magic link) ---------------- */
 
-function SignIn({ onIn }: { onIn: () => void }) {
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  const go = () => {
-    if (sent) {
-      onIn();
-      return;
-    }
-    setSending(true);
-    window.setTimeout(() => {
-      setSending(false);
-      setSent(true);
-    }, 900);
-  };
-
+function AuthScreen({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="min-h-svh grid place-items-center bg-bone px-4">
       <div className="w-full max-w-md border-2 border-granite-900 bg-bone shadow-hard p-8 sm:p-10 rise-in">
         <Wordmark />
-        <h1 className="font-display text-3xl font-medium mt-7">The family office.</h1>
-        <p className="text-sm text-granite-700 mt-2 leading-relaxed">Two people, one desk, every enquiry and booking in one place. Sign in with a magic link — no passwords to forget.</p>
-        <div className="mt-6">
-          <label className="field-label" htmlFor="adm-email">
-            Your email
-          </label>
-          <input id="adm-email" type="email" className="field-input" placeholder="you@harcourtvalley.example" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <button type="button" className="btn btn-primary w-full mt-5" onClick={go} disabled={sending}>
-          {sent ? "Open the office" : sending ? "Sending link…" : "Send sign-in link"}
-        </button>
-        {sent ? <p className="text-sm text-vine font-medium mt-3">Link "arrived" — this is the demo, so just press the button again.</p> : null}
-        <p className="text-xs text-granite-500 mt-5">In production this is Supabase magic-link auth for the two admin users only. No public sign-up.</p>
+        <h1 className="font-display text-3xl font-medium mt-7">{title}</h1>
+        {children}
       </div>
     </div>
+  );
+}
+
+function NotConfigured() {
+  return (
+    <AuthScreen title="The family office isn't connected yet.">
+      <p className="text-sm text-granite-700 mt-2 leading-relaxed">
+        This admin needs a Supabase project before anyone can sign in. Set <code>VITE_SUPABASE_URL</code> and{" "}
+        <code>VITE_SUPABASE_ANON_KEY</code> (see <code>.env.example</code> and <code>supabase/schema.sql</code>), then reload.
+      </p>
+    </AuthScreen>
+  );
+}
+
+function NotAdmin({ email }: { email: string | undefined }) {
+  const { signOut } = useAuth();
+  return (
+    <AuthScreen title="That email isn't on the list.">
+      <p className="text-sm text-granite-700 mt-2 leading-relaxed">
+        {email ? <>{email} isn't</> : "This account isn't"} allowlisted for the family office. Ask an existing admin to add you, or try a
+        different email.
+      </p>
+      <button type="button" className="btn btn-dark w-full mt-5" onClick={() => void signOut()}>
+        Try a different email
+      </button>
+    </AuthScreen>
+  );
+}
+
+function SignIn() {
+  const { sendMagicLink } = useAuth();
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const go = async () => {
+    if (!email.trim() || sending || sent) return;
+    setSending(true);
+    setError(null);
+    const { error: err } = await sendMagicLink(email.trim());
+    setSending(false);
+    if (err) setError(err);
+    else setSent(true);
+  };
+
+  return (
+    <AuthScreen title="The family office.">
+      <p className="text-sm text-granite-700 mt-2 leading-relaxed">Two people, one desk, every enquiry and booking in one place. Sign in with a magic link — no passwords to forget.</p>
+      <div className="mt-6">
+        <label className="field-label" htmlFor="adm-email">
+          Your email
+        </label>
+        <input
+          id="adm-email"
+          type="email"
+          className="field-input"
+          placeholder="you@harcourtvalley.example"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={sending || sent}
+        />
+      </div>
+      <button type="button" className="btn btn-primary w-full mt-5" onClick={() => void go()} disabled={sending || sent || !email.trim()}>
+        {sent ? "Check your email" : sending ? "Sending link…" : "Send sign-in link"}
+      </button>
+      {sent ? <p className="text-sm text-vine font-medium mt-3">Link sent to {email.trim()} — open it on this device to continue.</p> : null}
+      {error ? <p className="text-sm text-garnet font-medium mt-3">{error}</p> : null}
+      <p className="text-xs text-granite-500 mt-5">Only allowlisted admin emails can access the family office.</p>
+    </AuthScreen>
   );
 }
 
@@ -453,7 +497,6 @@ function WalkthroughModal({ onClose, go }: { onClose: () => void; go: (t: Tab) =
 
 export default function Admin() {
   useApplyAppearance();
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("hv-admin") === "1");
   const [tab, setTab] = useState<Tab>("overview");
   const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -462,12 +505,9 @@ export default function Admin() {
     return !seen;
   });
   const { resetDemo, toast, leads } = useStore();
+  const { configured, loading: authLoading, session, isAdmin, signOut } = useAuth();
 
   const newCount = useMemo(() => leads.filter((l) => l.status === "new").length, [leads]);
-
-  useEffect(() => {
-    if (authed) sessionStorage.setItem("hv-admin", "1");
-  }, [authed]);
 
   const completeWalkthrough = () => {
     localStorage.setItem("hv-walkthrough-seen", "1");
@@ -485,7 +525,10 @@ export default function Admin() {
     setNavOpen(false);
   };
 
-  if (!authed) return <SignIn onIn={() => setAuthed(true)} />;
+  if (!configured) return <NotConfigured />;
+  if (authLoading) return null;
+  if (!session) return <SignIn />;
+  if (!isAdmin) return <NotAdmin email={session.user.email} />;
 
   const groups = ["Day to day", "Wine side", "Behind the scenes"] as const;
 
@@ -543,14 +586,7 @@ export default function Admin() {
             >
               Reset demo data
             </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => {
-                setAuthed(false);
-                sessionStorage.removeItem("hv-admin");
-              }}
-            >
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => void signOut()}>
               Sign out
             </button>
             <button type="button" className="btn btn-sm btn-ghost px-3 md:hidden" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen} aria-label="Toggle sections">

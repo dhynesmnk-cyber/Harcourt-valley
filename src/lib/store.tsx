@@ -5,6 +5,7 @@ import {
   DAY, dstr, iso, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedProducts,
   seedProfiles, seedSequences, seedSends, seedTradeOrders, uid,
 } from "./data";
+import { supabase } from "./supabase";
 
 interface StoreState {
   products: Product[];
@@ -18,8 +19,6 @@ interface StoreState {
   outbox: OutboxItem[];
   config: SiteConfig;
 }
-
-const STORAGE_KEY = "hv-state-v3";
 
 function freshState(): StoreState {
   return {
@@ -36,18 +35,10 @@ function freshState(): StoreState {
   };
 }
 
-function loadState(): StoreState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as StoreState;
-      if (parsed && parsed.config && parsed.products) return parsed;
-    }
-  } catch {
-    /* fall through to seed */
-  }
-  return freshState();
-}
+/* The single row (id=1) in Supabase's site_state table holding all
+   admin/site content, in the same shape as StoreState. See
+   supabase/schema.sql. */
+const SITE_STATE_ROW_ID = 1;
 
 export interface Toast {
   id: string;
@@ -88,7 +79,7 @@ interface StoreValue extends StoreState {
 const Ctx = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<StoreState>(loadState);
+  const [state, setState] = useState<StoreState>(freshState);
   const [cart, setCart] = useState<CartLine[]>(() => {
     try {
       const raw = localStorage.getItem("hv-cart-v1");
@@ -100,10 +91,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastTimers = useRef<number[]>([]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
 
   useEffect(() => {
     localStorage.setItem("hv-cart-v1", JSON.stringify(cart));
@@ -118,6 +105,58 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200),
     );
   }, []);
+
+  /* Loads the shared admin/site content from Supabase on mount, replacing
+     the local seed defaults if a saved row exists. Falls back to the seed
+     (and future mutations simply won't be shared across browsers) if
+     Supabase isn't configured or the fetch fails. */
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    supabase
+      .from("site_state")
+      .select("data")
+      .eq("id", SITE_STATE_ROW_ID)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("Failed to load site data from Supabase:", error.message);
+          return;
+        }
+        if (data?.data) {
+          setState((prev) => ({ ...prev, ...(data.data as StoreState) }));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* Every admin mutation goes through here instead of setState directly,
+     so each change is both applied locally (optimistic) and written back
+     to the shared Supabase row. If Supabase isn't configured, this is
+     equivalent to a plain setState. */
+  const persistAndSet = useCallback(
+    (updater: (s: StoreState) => StoreState) => {
+      setState((s) => {
+        const next = updater(s);
+        if (supabase) {
+          supabase
+            .from("site_state")
+            .upsert({ id: SITE_STATE_ROW_ID, data: next, updated_at: new Date().toISOString() })
+            .then(({ error }) => {
+              if (error) {
+                console.error("Failed to save to Supabase:", error.message);
+                toast("Couldn't save that to the server — check your connection and try again.");
+              }
+            });
+        }
+        return next;
+      });
+    },
+    [toast],
+  );
 
   /* ---------- cart ---------- */
 
@@ -161,7 +200,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         status: "paid",
         createdAt: new Date().toISOString(),
       };
-      setState((s) => ({
+      persistAndSet((s) => ({
         ...s,
         orders: [order, ...s.orders],
         products: s.products.map((p) => {
@@ -180,7 +219,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const addLead = useCallback(
     (input: Omit<Lead, "id" | "status" | "bookedDate" | "source" | "createdAt">): Lead => {
       const lead: Lead = { ...input, id: uid(), status: "new", bookedDate: null, source: "website", createdAt: new Date().toISOString() };
-      setState((s) => {
+      persistAndSet((s) => {
         let sends = s.sends;
         if (input.infoPack) {
           const seq = s.sequences.find((q) => q.audience === (input.type === "wedding" ? "wedding" : "event") && q.active);
@@ -208,11 +247,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateLead = useCallback((id: string, patch: Partial<Lead>) => {
-    setState((s) => ({ ...s, leads: s.leads.map((l) => (l.id === id ? { ...l, ...patch } : l)) }));
+    persistAndSet((s) => ({ ...s, leads: s.leads.map((l) => (l.id === id ? { ...l, ...patch } : l)) }));
   }, []);
 
   const moveLead = useCallback((id: string, status: LeadStatus) => {
-    setState((s) => ({
+    persistAndSet((s) => ({
       ...s,
       leads: s.leads.map((l) =>
         l.id === id
@@ -223,21 +262,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addNote = useCallback((leadId: string, body: string) => {
-    setState((s) => ({ ...s, notes: [{ id: uid(), leadId, body, createdAt: new Date().toISOString() }, ...s.notes] }));
+    persistAndSet((s) => ({ ...s, notes: [{ id: uid(), leadId, body, createdAt: new Date().toISOString() }, ...s.notes] }));
   }, []);
 
   /* ---------- commerce ---------- */
 
   const addTradeOrder = useCallback((o: Omit<TradeOrder, "id" | "status" | "createdAt">) => {
-    setState((s) => ({ ...s, tradeOrders: [{ ...o, id: uid(), status: "new", createdAt: new Date().toISOString() }, ...s.tradeOrders] }));
+    persistAndSet((s) => ({ ...s, tradeOrders: [{ ...o, id: uid(), status: "new", createdAt: new Date().toISOString() }, ...s.tradeOrders] }));
   }, []);
 
   const fulfillTradeOrder = useCallback((id: string) => {
-    setState((s) => ({ ...s, tradeOrders: s.tradeOrders.map((t) => (t.id === id ? { ...t, status: "fulfilled" } : t)) }));
+    persistAndSet((s) => ({ ...s, tradeOrders: s.tradeOrders.map((t) => (t.id === id ? { ...t, status: "fulfilled" } : t)) }));
   }, []);
 
   const updateProduct = useCallback((id: string, patch: Partial<Product>) => {
-    setState((s) => ({ ...s, products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+    persistAndSet((s) => ({ ...s, products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
   }, []);
 
   const addProduct = useCallback(
@@ -249,7 +288,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         active: true,
         ...p,
       };
-      setState((s) => ({ ...s, products: [product, ...s.products] }));
+      persistAndSet((s) => ({ ...s, products: [product, ...s.products] }));
     },
     [],
   );
@@ -257,11 +296,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   /* ---------- sequences / email ---------- */
 
   const updateSequence = useCallback((id: string, steps: SequenceStep[]) => {
-    setState((s) => ({ ...s, sequences: s.sequences.map((q) => (q.id === id ? { ...q, steps } : q)) }));
+    persistAndSet((s) => ({ ...s, sequences: s.sequences.map((q) => (q.id === id ? { ...q, steps } : q)) }));
   }, []);
 
   const toggleSequence = useCallback((id: string) => {
-    setState((s) => ({ ...s, sequences: s.sequences.map((q) => (q.id === id ? { ...q, active: !q.active } : q)) }));
+    persistAndSet((s) => ({ ...s, sequences: s.sequences.map((q) => (q.id === id ? { ...q, active: !q.active } : q)) }));
   }, []);
 
   const dueEmails = useMemo(
@@ -277,7 +316,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const sendDueEmails = useCallback((): number => {
     let count = 0;
-    setState((s) => ({
+    persistAndSet((s) => ({
       ...s,
       sends: s.sends.map((e) => {
         const due = e.status === "scheduled" && new Date(e.sendAt).getTime() <= Date.now();
@@ -291,29 +330,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   /* ---------- CMS / appearance ---------- */
 
   const updateConfig = useCallback((patch: Partial<SiteConfig>) => {
-    setState((s) => ({ ...s, config: { ...s.config, ...patch } }));
+    persistAndSet((s) => ({ ...s, config: { ...s.config, ...patch } }));
   }, []);
 
   const resetDemo = useCallback(() => {
-    setState(freshState());
+    persistAndSet(() => freshState());
     setCart([]);
   }, []);
 
   /* ---------- outreach ---------- */
 
   const addProfile = useCallback((p: Omit<Bee23Profile, "id">) => {
-    setState((s) => ({ ...s, profiles: [...s.profiles, { ...p, id: uid() }] }));
+    persistAndSet((s) => ({ ...s, profiles: [...s.profiles, { ...p, id: uid() }] }));
   }, []);
 
   const addOutbox = useCallback((items: Omit<OutboxItem, "id" | "updatedAt" | "state">[]) => {
-    setState((s) => ({
+    persistAndSet((s) => ({
       ...s,
       outbox: [...items.map((i) => ({ ...i, id: uid(), state: "draft" as const, updatedAt: new Date().toISOString() })), ...s.outbox],
     }));
   }, []);
 
   const setOutboxState = useCallback((id: string, st: OutboxItem["state"]) => {
-    setState((s) => ({ ...s, outbox: s.outbox.map((o) => (o.id === id ? { ...o, state: st, updatedAt: new Date().toISOString() } : o)) }));
+    persistAndSet((s) => ({ ...s, outbox: s.outbox.map((o) => (o.id === id ? { ...o, state: st, updatedAt: new Date().toISOString() } : o)) }));
   }, []);
 
   const value: StoreValue = {

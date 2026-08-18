@@ -1,6 +1,7 @@
 import React from "react";
 import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
 import { StoreProvider } from "./lib/store";
+import { AuthProvider } from "./lib/auth";
 import { CartDrawer, Footer, Header, ScrollToTop, ToastHost } from "./components/chrome";
 import Home from "./pages/Home";
 import Winery from "./pages/Winery";
@@ -59,10 +60,12 @@ function NotFound() {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <HashRouter>
-        <Shell />
-      </HashRouter>
-    </StoreProvider>
+    <AuthProvider>
+      <StoreProvider>
+        <HashRouter>
+          <Shell />
+        </HashRouter>
+      </StoreProvider>
+    </AuthProvider>
   );
 }
