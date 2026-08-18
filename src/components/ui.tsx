@@ -151,6 +151,13 @@ export const MinusIcon = ({ className }: { className?: string }) => (
     <path d="M5 12h14" />
   </I>
 );
+export const TrashIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <path d="M4.5 6.5h15M9.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7" />
+    <path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5" />
+    <path d="M10.5 10v6.5M13.5 10v6.5" />
+  </I>
+);
 export const SendIcon = ({ className }: { className?: string }) => (
   <I className={className}>
     <path d="M20 4 10 14M20 4l-6.5 16-3.5-6L4 10.5 20 4Z" />

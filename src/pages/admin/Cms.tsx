@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { IMG, TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
 import { useStore } from "../../lib/store";
-import { MinusIcon, PlusIcon, Tick } from "../../components/ui";
+import { PlusIcon, Tick, TrashIcon } from "../../components/ui";
 import { TypedPreview } from "../../components/TypedLines";
 
 function BallparkEditor({ label, rows, onSave }: { label: string; rows: Ballpark[]; onSave: (rows: Ballpark[]) => void }) {
@@ -13,7 +13,7 @@ function BallparkEditor({ label, rows, onSave }: { label: string; rows: Ballpark
       <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">{label}</legend>
       <div className="p-5 space-y-4">
         {draft.map((r, i) => (
-          <div key={i} className="grid sm:grid-cols-[1.2fr_0.8fr_1.4fr_40px] gap-3 items-end border border-granite-300 p-4 bg-granite-100/40">
+          <div key={i} className="grid sm:grid-cols-[1.2fr_0.8fr_1.4fr_auto] gap-3 items-end border border-granite-300 p-4 bg-granite-100/40">
             <div>
               <label className="field-label" htmlFor={`bp-${label}-${i}-l`}>
                 What it is
@@ -32,8 +32,14 @@ function BallparkEditor({ label, rows, onSave }: { label: string; rows: Ballpark
               </label>
               <input id={`bp-${label}-${i}-n`} className="field-input" value={r.note} onChange={(e) => set(i, { note: e.target.value })} />
             </div>
-            <button type="button" className="btn btn-ghost px-0 h-[48px]" disabled={draft.length === 1} onClick={() => setDraft((d) => d.filter((_, j) => j !== i))} aria-label={`Remove row ${i + 1}`}>
-              <MinusIcon className="w-4 h-4" />
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost text-garnet h-[48px] whitespace-nowrap"
+              disabled={draft.length === 1}
+              onClick={() => setDraft((d) => d.filter((_, j) => j !== i))}
+              title={draft.length === 1 ? "The last row has to stay." : `Delete "${r.label || `row ${i + 1}`}"`}
+            >
+              <TrashIcon className="w-4 h-4" /> Delete
             </button>
           </div>
         ))}
@@ -60,8 +66,14 @@ function ListEditor({ label, items, onSave, placeholder }: { label: string; item
         {draft.map((item, i) => (
           <div key={i} className="flex gap-3 items-center">
             <input className="field-input" value={item} onChange={(e) => setDraft((d) => d.map((x, j) => (j === i ? e.target.value : x)))} aria-label={`${label} item ${i + 1}`} />
-            <button type="button" className="btn btn-ghost px-0 w-11 shrink-0" disabled={draft.length === 1} onClick={() => setDraft((d) => d.filter((_, j) => j !== i))} aria-label={`Remove "${item}"`}>
-              <MinusIcon className="w-4 h-4" />
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost text-garnet shrink-0 whitespace-nowrap"
+              disabled={draft.length === 1}
+              onClick={() => setDraft((d) => d.filter((_, j) => j !== i))}
+              title={draft.length === 1 ? "The last one has to stay." : `Delete "${item}"`}
+            >
+              <TrashIcon className="w-4 h-4" /> Delete
             </button>
           </div>
         ))}
@@ -280,8 +292,13 @@ function TypedTab() {
                 <span className="text-xs text-granite-500 ml-1">
                   {i + 1} of {rows.length}
                 </span>
-                <button type="button" className="btn btn-sm btn-ghost px-3 ml-auto text-garnet" onClick={() => remove(l.id)} aria-label={`Remove line ${i + 1}`}>
-                  <MinusIcon className="w-4 h-4" /> Remove
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost px-3 ml-auto text-garnet"
+                  onClick={() => remove(l.id)}
+                  title={`Delete line ${i + 1}`}
+                >
+                  <TrashIcon className="w-4 h-4" /> Delete
                 </button>
               </div>
             </div>

@@ -64,12 +64,15 @@ body::after {
 
 /* ================= Language: brutalist structure, organic softness ================= */
 
-.kicker {
-  font-family: var(--font-label);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  font-weight: 600;
+/* Layered so `kicker text-[0.6rem]` can actually shrink it. */
+@layer components {
+  .kicker {
+    font-family: var(--font-label);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
 }
 
 .num-ghost {
@@ -104,118 +107,128 @@ body::after {
 
 /* ================= Buttons ================= */
 
-/* `display` lives in @layer components so Tailwind's utilities layer still
-   wins — otherwise unlayered CSS beats `hidden`/`sm:inline-flex` and buttons
-   can never be hidden responsively. */
+/* These live in @layer components, which sits *below* Tailwind's utilities
+   layer, so `px-0`, `bg-bone`, `min-h-[34px]` and friends win when a caller
+   asks for them. Unlayered, they don't: plain CSS outranks any layer no matter
+   the specificity, which silently swallowed every utility written next to a
+   .btn — icons squeezed to zero width by padding that px-0 should have removed,
+   bone-on-dark buttons rendering dark-on-dark. */
 @layer components {
   .btn {
     display: inline-flex;
+    font-family: var(--font-label);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 600;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 48px;
+    padding: 0.7rem 1.5rem;
+    border: 2px solid var(--color-granite-900);
+    background: transparent;
+    color: var(--color-granite-900);
+    cursor: pointer;
+    transition:
+      transform 0.18s var(--ease-soft),
+      box-shadow 0.18s var(--ease-soft),
+      background-color 0.18s var(--ease-soft),
+      color 0.18s var(--ease-soft);
   }
-}
-
-.btn {
-  font-family: var(--font-label);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.78rem;
-  font-weight: 600;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  min-height: 48px;
-  padding: 0.7rem 1.5rem;
-  border: 2px solid var(--color-granite-900);
-  background: transparent;
-  color: var(--color-granite-900);
-  cursor: pointer;
-  transition:
-    transform 0.18s var(--ease-soft),
-    box-shadow 0.18s var(--ease-soft),
-    background-color 0.18s var(--ease-soft),
-    color 0.18s var(--ease-soft);
-}
-.btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 0 var(--color-granite-900);
-}
-.btn:active {
-  transform: translate(0, 0);
-  box-shadow: 0 0 0 0 var(--color-granite-900);
-}
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-.btn-primary {
-  background: var(--acc-garnet);
-  border-color: var(--color-granite-900);
-  color: var(--color-bone);
-}
-.btn-primary:hover {
-  box-shadow: 4px 4px 0 0 var(--color-granite-900);
-}
-.btn-dark {
-  background: var(--color-granite-900);
-  color: var(--color-bone);
-}
-.btn-dark:hover {
-  box-shadow: 4px 4px 0 0 var(--acc-garnet);
-}
-.btn-ghost:hover {
-  background: var(--color-granite-100);
-}
-.btn-bone {
-  background: var(--color-bone);
-}
-.btn-sm {
-  min-height: 40px;
-  padding: 0.4rem 1rem;
-  font-size: 0.72rem;
+  .btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 0 var(--color-granite-900);
+  }
+  .btn:active {
+    transform: translate(0, 0);
+    box-shadow: 0 0 0 0 var(--color-granite-900);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-primary {
+    background: var(--acc-garnet);
+    border-color: var(--color-granite-900);
+    color: var(--color-bone);
+  }
+  .btn-primary:hover {
+    box-shadow: 4px 4px 0 0 var(--color-granite-900);
+  }
+  .btn-dark {
+    background: var(--color-granite-900);
+    color: var(--color-bone);
+  }
+  .btn-dark:hover {
+    box-shadow: 4px 4px 0 0 var(--acc-garnet);
+  }
+  .btn-ghost:hover {
+    background: var(--color-granite-100);
+  }
+  .btn-bone {
+    background: var(--color-bone);
+  }
+  .btn-sm {
+    min-height: 40px;
+    padding: 0.4rem 1rem;
+    font-size: 0.72rem;
+  }
+  /* An icon-only button: square, no side padding to crush the glyph. */
+  .btn-icon {
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+  }
 }
 
 /* ================= Forms ================= */
 
-.field-label {
-  display: block;
-  font-family: var(--font-label);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-granite-700);
-  margin-bottom: 0.45rem;
-}
-.field-input {
-  width: 100%;
-  border: 2px solid var(--color-granite-900);
-  background: var(--color-bone);
-  color: var(--color-granite-900);
-  padding: 0.65rem 0.9rem;
-  min-height: 48px;
-  font-size: 0.95rem;
-  font-family: var(--font-body);
-  border-radius: 0;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.field-input::placeholder {
-  color: var(--color-granite-500);
-}
-.field-input:focus {
-  outline: none;
-  border-color: var(--acc-vine);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc-vine) 22%, transparent);
-}
-.field-input[aria-invalid="true"] {
-  border-color: var(--acc-garnet);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc-garnet) 18%, transparent);
-}
-.field-error {
-  color: var(--acc-garnet);
-  font-size: 0.82rem;
-  margin-top: 0.35rem;
-  font-weight: 500;
+/* Layered for the same reason as the buttons: `min-h-[110px]` on a textarea
+   has to be able to beat the 48px baseline. */
+@layer components {
+  .field-label {
+    display: block;
+    font-family: var(--font-label);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-granite-700);
+    margin-bottom: 0.45rem;
+  }
+  .field-input {
+    width: 100%;
+    border: 2px solid var(--color-granite-900);
+    background: var(--color-bone);
+    color: var(--color-granite-900);
+    padding: 0.65rem 0.9rem;
+    min-height: 48px;
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+    border-radius: 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .field-input::placeholder {
+    color: var(--color-granite-500);
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--acc-vine);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc-vine) 22%, transparent);
+  }
+  .field-input[aria-invalid="true"] {
+    border-color: var(--acc-garnet);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc-garnet) 18%, transparent);
+  }
+  .field-error {
+    color: var(--acc-garnet);
+    font-size: 0.82rem;
+    margin-top: 0.35rem;
+    font-weight: 500;
+  }
 }
 
 /* ================= Motion ================= */
@@ -431,68 +444,72 @@ body::before {
 
 /* ---- Buttons: longer glide, ambient lift, a slow sheen on the solids ---- */
 
-.btn {
-  position: relative;
-  transition:
-    transform 0.42s var(--ease-lux),
-    box-shadow 0.42s var(--ease-lux),
-    background-color 0.42s var(--ease-lux),
-    background-position 0.9s var(--ease-lux),
-    letter-spacing 0.42s var(--ease-lux),
-    color 0.3s var(--ease-lux);
-}
-.btn:hover {
-  transform: translate(-2px, -3px);
-  box-shadow: 4px 4px 0 0 var(--color-granite-900), var(--lift-2);
-  letter-spacing: 0.135em;
-}
-.btn:active {
-  transform: translate(0, 0);
-  box-shadow: 0 0 0 0 var(--color-granite-900), var(--lift-1);
-  transition-duration: 0.12s;
-}
+@layer components {
+  .btn {
+    position: relative;
+    transition:
+      transform 0.42s var(--ease-lux),
+      box-shadow 0.42s var(--ease-lux),
+      background-color 0.42s var(--ease-lux),
+      background-position 0.9s var(--ease-lux),
+      letter-spacing 0.42s var(--ease-lux),
+      color 0.3s var(--ease-lux);
+  }
+  .btn:hover {
+    transform: translate(-2px, -3px);
+    box-shadow: 4px 4px 0 0 var(--color-granite-900), var(--lift-2);
+    letter-spacing: 0.135em;
+  }
+  .btn:active {
+    transform: translate(0, 0);
+    box-shadow: 0 0 0 0 var(--color-granite-900), var(--lift-1);
+    transition-duration: 0.12s;
+  }
 
-/* Sheen rides the background, not a pseudo-element, so nothing gets clipped
-   (the cart badge lives inside its button). */
-.btn-primary,
-.btn-dark {
-  background-image: linear-gradient(112deg, transparent 32%, rgba(246, 242, 233, 0.14) 46%, rgba(246, 242, 233, 0.03) 54%, transparent 68%);
-  background-size: 280% 100%;
-  background-position: 135% 0;
-  background-repeat: no-repeat;
-}
-.btn-primary:hover,
-.btn-dark:hover {
-  background-position: -35% 0;
-}
-.btn-primary:hover {
-  box-shadow: 4px 4px 0 0 var(--color-granite-900), 0 16px 32px -16px color-mix(in srgb, var(--acc-garnet) 60%, transparent);
-}
-.btn-dark:hover {
-  box-shadow: 4px 4px 0 0 var(--acc-garnet), var(--lift-2);
-}
-.btn-ghost {
-  transition-property: transform, box-shadow, background-color, letter-spacing, color;
-}
-.btn-ghost:hover {
-  background: color-mix(in srgb, var(--color-granite-100) 70%, transparent);
+  /* Sheen rides the background, not a pseudo-element, so nothing gets clipped
+     (the cart badge lives inside its button). */
+  .btn-primary,
+  .btn-dark {
+    background-image: linear-gradient(112deg, transparent 32%, rgba(246, 242, 233, 0.14) 46%, rgba(246, 242, 233, 0.03) 54%, transparent 68%);
+    background-size: 280% 100%;
+    background-position: 135% 0;
+    background-repeat: no-repeat;
+  }
+  .btn-primary:hover,
+  .btn-dark:hover {
+    background-position: -35% 0;
+  }
+  .btn-primary:hover {
+    box-shadow: 4px 4px 0 0 var(--color-granite-900), 0 16px 32px -16px color-mix(in srgb, var(--acc-garnet) 60%, transparent);
+  }
+  .btn-dark:hover {
+    box-shadow: 4px 4px 0 0 var(--acc-garnet), var(--lift-2);
+  }
+  .btn-ghost {
+    transition-property: transform, box-shadow, background-color, letter-spacing, color;
+  }
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--color-granite-100) 70%, transparent);
+  }
 }
 
 /* ---- Fields: the ring blooms instead of appearing ---- */
 
-.field-input {
-  transition:
-    border-color 0.35s var(--ease-lux),
-    box-shadow 0.35s var(--ease-lux),
-    background-color 0.35s var(--ease-lux);
-}
-.field-input:hover:not(:focus) {
-  border-color: var(--color-granite-700);
-}
-.field-input:focus {
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--acc-vine) 20%, transparent),
-    var(--lift-1);
+@layer components {
+  .field-input {
+    transition:
+      border-color 0.35s var(--ease-lux),
+      box-shadow 0.35s var(--ease-lux),
+      background-color 0.35s var(--ease-lux);
+  }
+  .field-input:hover:not(:focus) {
+    border-color: var(--color-granite-700);
+  }
+  .field-input:focus {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--acc-vine) 20%, transparent),
+      var(--lift-1);
+  }
 }
 
 /* ---- Surfaces that lift ---- */
