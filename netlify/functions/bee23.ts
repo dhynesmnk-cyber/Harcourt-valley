@@ -63,6 +63,12 @@ function resolveEngineCall(
       };
     }
 
+    case "remove-stockist": {
+      const id = Number(req.id);
+      if (!Number.isFinite(id)) return { error: "id must be a number" };
+      return { path: `/api/stockists/${id}`, method: "DELETE" };
+    }
+
     case "run-discovery":
       return {
         path: "/api/discovery/generate",
@@ -135,6 +141,14 @@ export default async (request: Request): Promise<Response> => {
       method: resolved.method,
       body: resolved.body,
     });
+
+    // 204/205/304 are null-body statuses — the Response constructor throws if
+    // given a body (even "") alongside one. The delete-stockist route returns
+    // a bare 204, so this isn't a hypothetical.
+    if (engineRes.status === 204 || engineRes.status === 205 || engineRes.status === 304) {
+      return new Response(null, { status: engineRes.status });
+    }
+
     const text = await engineRes.text();
     return new Response(text, {
       status: engineRes.status,

@@ -6,12 +6,14 @@ import {
   checkBee23Available,
   listStockists,
   addStockist,
+  removeStockist,
   runDiscovery,
   listDiscoverySuggestions,
   addSuggestionAsAccount,
   waitForEnrichment,
   generatePitch,
   splitPitch,
+  type Bee23Stockist,
 } from "../../lib/bee23";
 
 interface Suggestion {
@@ -70,6 +72,13 @@ export function OutreachView() {
   const [bee23Connected, setBee23Connected] = useState<boolean | null>(null);
   const [findingProfileId, setFindingProfileId] = useState<string | null>(null);
   const [writingKey, setWritingKey] = useState<string | null>(null);
+  const [stockists, setStockists] = useState<Bee23Stockist[]>([]);
+  const [stockistsLoaded, setStockistsLoaded] = useState(false);
+  const [newStockistName, setNewStockistName] = useState("");
+  const [stockistErr, setStockistErr] = useState("");
+  const [addingStockist, setAddingStockist] = useState(false);
+  const [removingStockistId, setRemovingStockistId] = useState<number | null>(null);
+  const [seedingFromTrade, setSeedingFromTrade] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +89,16 @@ export function OutreachView() {
       cancelled = true;
     };
   }, []);
+
+  const refreshStockists = async () => {
+    const list = await listStockists();
+    setStockists(list);
+    setStockistsLoaded(true);
+  };
+
+  useEffect(() => {
+    if (bee23Connected) void refreshStockists();
+  }, [bee23Connected]);
 
   const booked = leads.filter((l) => l.status === "booked");
 
@@ -121,17 +140,16 @@ export function OutreachView() {
     setNewWho("");
   };
 
-  /** Makes sure the engine has enough training data before discovery can run,
-   *  seeding it from Harcourt's own trade orders — real stockists already on
-   *  the books, not fabricated ones. */
-  const ensureStockistsTrained = async (): Promise<{ trained: boolean; added: number }> => {
+  /** Adds Harcourt's own trade orders as stockists — real businesses already
+   *  on the books, not fabricated ones — up to `cap` new additions, or all of
+   *  them if `cap` is omitted. Used both to auto-train enough for discovery to
+   *  run at all, and by the explicit "Seed from my trade accounts" button. */
+  const seedStockistsFromTradeOrders = async (cap?: number): Promise<{ added: number; count: number }> => {
     const existing = await listStockists();
     const known = new Set(existing.map((s) => s.businessName.toLowerCase()));
-    if (known.size >= MIN_STOCKISTS_FOR_DISCOVERY) return { trained: true, added: 0 };
-
     let added = 0;
     for (const t of tradeOrders) {
-      if (known.size >= MIN_STOCKISTS_FOR_DISCOVERY) break;
+      if (cap != null && known.size >= cap) break;
       if (known.has(t.business.toLowerCase())) continue;
       const result = await addStockist({ businessName: t.business });
       if (result) {
@@ -139,7 +157,63 @@ export function OutreachView() {
         added++;
       }
     }
-    return { trained: known.size >= MIN_STOCKISTS_FOR_DISCOVERY, added };
+    return { added, count: known.size };
+  };
+
+  /** Makes sure the engine has enough training data before discovery can run. */
+  const ensureStockistsTrained = async (): Promise<{ trained: boolean; added: number }> => {
+    const { added, count } = await seedStockistsFromTradeOrders(MIN_STOCKISTS_FOR_DISCOVERY);
+    return { trained: count >= MIN_STOCKISTS_FOR_DISCOVERY, added };
+  };
+
+  const handleAddStockist = async () => {
+    const name = newStockistName.trim();
+    if (name.length < 2) {
+      setStockistErr("Give it a business name.");
+      return;
+    }
+    setStockistErr("");
+    setAddingStockist(true);
+    try {
+      const created = await addStockist({ businessName: name });
+      if (!created) {
+        toast("Couldn't add that stockist — try again shortly.");
+        return;
+      }
+      setStockists((prev) => [created, ...prev]);
+      setNewStockistName("");
+      toast(`Added ${created.businessName} to the training list.`);
+    } finally {
+      setAddingStockist(false);
+    }
+  };
+
+  const handleRemoveStockist = async (s: Bee23Stockist) => {
+    setRemovingStockistId(s.id);
+    try {
+      const ok = await removeStockist(s.id);
+      if (!ok) {
+        toast(`Couldn't remove ${s.businessName} — try again shortly.`);
+        return;
+      }
+      setStockists((prev) => prev.filter((x) => x.id !== s.id));
+      toast(`Removed ${s.businessName} from the training list.`);
+    } finally {
+      setRemovingStockistId(null);
+    }
+  };
+
+  const handleSeedFromTrade = async () => {
+    setSeedingFromTrade(true);
+    try {
+      const { added } = await seedStockistsFromTradeOrders();
+      await refreshStockists();
+      toast(added > 0 ? `Added ${added} trade account${added === 1 ? "" : "s"} to the training list.` : "Every trade account is already in the training list.");
+    } catch {
+      toast("Couldn't reach bee23 — try again shortly.");
+    } finally {
+      setSeedingFromTrade(false);
+    }
   };
 
   const findMatchesLive = async (profile: Bee23Profile) => {
@@ -147,7 +221,10 @@ export function OutreachView() {
     setResults(null);
     try {
       const { trained, added } = await ensureStockistsTrained();
-      if (added > 0) toast(`Trained bee23 on ${added} of your existing trade accounts.`);
+      if (added > 0) {
+        await refreshStockists();
+        toast(`Trained bee23 on ${added} of your existing trade accounts.`);
+      }
       if (!trained) {
         toast(`Bee23 needs at least ${MIN_STOCKISTS_FOR_DISCOVERY} stockists to learn from — add more in Stockist Training first.`);
         return;
@@ -321,6 +398,66 @@ export function OutreachView() {
           </div>
         ) : null}
       </div>
+
+      {/* Stockist training */}
+      {bee23Connected ? (
+        <div className="mt-8 border-2 border-granite-900 bg-bone p-6 sm:p-8">
+          <div className="flex flex-wrap items-center gap-4 justify-between">
+            <div>
+              <p className="kicker text-granite-500">Stockist training</p>
+              <p className="font-display text-2xl font-medium mt-1.5">What bee23 learns from.</p>
+              <p className="text-sm text-granite-500 mt-1.5 max-w-xl">
+                Discovery for Regional stockists needs at least {MIN_STOCKISTS_FOR_DISCOVERY} of these to learn from — you have {stockistsLoaded ? stockists.length : "…"}.
+              </p>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm disabled:opacity-60" onClick={handleSeedFromTrade} disabled={seedingFromTrade}>
+              {seedingFromTrade ? "Adding…" : "Seed from my trade accounts"}
+            </button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {stockists.map((s) => (
+              <span key={s.id} className="inline-flex items-center gap-1.5 border border-granite-300 pl-3 pr-1.5 py-1 text-xs font-label font-semibold text-granite-700">
+                {s.businessName}
+                <button
+                  type="button"
+                  aria-label={`Remove ${s.businessName}`}
+                  className="text-granite-400 hover:text-granite-900 disabled:opacity-40"
+                  disabled={removingStockistId === s.id}
+                  onClick={() => handleRemoveStockist(s)}
+                >
+                  <CloseIcon className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            {stockistsLoaded && stockists.length === 0 ? (
+              <p className="text-xs text-granite-500">None yet — add one below, or seed from your trade accounts.</p>
+            ) : null}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-start gap-2">
+            <div className="flex-1 min-w-[220px]">
+              <label className="sr-only" htmlFor="stockist-name">
+                Business name
+              </label>
+              <input
+                id="stockist-name"
+                className="field-input"
+                placeholder="e.g. The Local Cellar"
+                value={newStockistName}
+                onChange={(e) => setNewStockistName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleAddStockist();
+                }}
+              />
+              {stockistErr ? <p className="field-error mt-1">{stockistErr}</p> : null}
+            </div>
+            <button type="button" className="btn btn-dark btn-sm disabled:opacity-60" onClick={handleAddStockist} disabled={addingStockist}>
+              <PlusIcon className="w-3.5 h-3.5" /> {addingStockist ? "Adding…" : "Add"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Target profiles */}
       <div className="mt-8">

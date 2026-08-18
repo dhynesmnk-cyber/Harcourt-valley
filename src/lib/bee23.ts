@@ -95,6 +95,11 @@ export async function addStockist(input: {
   return result.ok ? result.data : null;
 }
 
+export async function removeStockist(id: number): Promise<boolean> {
+  const result = await call<null>("remove-stockist", { id });
+  return result.ok;
+}
+
 export async function runDiscovery(
   customPrompt: string,
 ): Promise<{ ok: true; count: number; basedOn: number } | { ok: false; error: string }> {
