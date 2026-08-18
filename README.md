@@ -52,3 +52,30 @@ pipeline.
 `/#/admin` → "Email me a sign-in link" → any email address signs you in
 (demo auth; production wiring is Supabase magic links per `ARCHITECTURE.md`).
 Use "Reset demo data" in the sidebar to reseed sample leads, orders and emails.
+
+## Bee23 outreach engine
+
+The Outreach tab (`/#/admin` → Outreach) can run on a real
+[bee23](https://github.com/dhynesmnk-cyber/BeeSearch) engine instead of its
+built-in demo data. It's optional — with nothing configured, Outreach behaves
+exactly as it does today.
+
+To connect one, set two environment variables on the Netlify site (Site
+configuration → Environment variables), not in this repo:
+
+| Variable | Value |
+|---|---|
+| `BEE23_ENGINE_URL` | The deployed engine's base URL, e.g. `https://bee23.example.com` |
+| `BEE23_API_TOKEN` | A token minted from that engine — see its README's "Using bee23 from another site" |
+
+Both are read only by `netlify/functions/bee23.ts`, a server-side proxy — the
+token never reaches the browser bundle. This requires a Netlify deploy that
+runs Functions (Git-connected or `netlify deploy`); **Netlify Drop does not
+support Functions or environment variables**, so the drag-and-drop option above
+always runs Outreach in demo mode.
+
+Once connected, the "Regional stockists" target profile searches for real
+prospects, seeded from Harcourt's own trade accounts (`src/lib/data.ts` →
+`seedTradeOrders`) the first time it runs. "Wedding & event planners" stays on
+demo data — there's no equivalent structured list of existing planner
+relationships in this app to train it on.

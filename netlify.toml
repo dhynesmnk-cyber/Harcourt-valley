@@ -6,6 +6,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[functions]
+  directory = "netlify/functions"
+
 # Single-page app: any unknown path serves the shell (router takes over)
 [[redirects]]
   from = "/*"
