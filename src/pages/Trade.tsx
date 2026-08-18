@@ -114,7 +114,7 @@ export default function Trade() {
             </div>
           </Reveal>
           <Reveal delay={100}>
-            <div className="img-frame border-2 border-granite-900 shadow-hard-sm">
+            <div className="img-frame border-2 border-granite-900 shadow-hard-sm lux-zoom">
               <img src={IMG.bottles} alt="The full range — wine, beer and mead — on a granite table" className="w-full h-56 object-cover img-in" loading="lazy" />
             </div>
           </Reveal>

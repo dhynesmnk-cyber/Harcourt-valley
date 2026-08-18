@@ -76,10 +76,10 @@ export default function Weddings() {
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <div className="img-frame border-2 border-granite-900 shadow-hard">
+          <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
             <img src={IMG.granite} alt="Granite boulders and gums behind the vineyard — the photo backdrop" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
           </div>
-          <div className="mt-6 img-frame-alt border-2 border-granite-900">
+          <div className="mt-6 img-frame-alt border-2 border-granite-900 lux-zoom">
             <img src={IMG.longTable} alt="The function shed dressed for a wedding dinner" className="w-full h-[220px] sm:h-[280px] object-cover img-in" loading="lazy" />
           </div>
         </Reveal>

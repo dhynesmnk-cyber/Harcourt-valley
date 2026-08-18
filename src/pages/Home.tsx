@@ -122,7 +122,7 @@ function Classic() {
           </Reveal>
         </div>
         <Reveal delay={120} className="lg:col-span-6">
-          <div className="img-frame border-2 border-granite-900 shadow-hard">
+          <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
             <img src={config.heroImage} alt="Vine rows running toward the granite hills at golden hour" className="w-full h-[320px] sm:h-[440px] object-cover img-in" />
           </div>
         </Reveal>
@@ -150,9 +150,9 @@ function Classic() {
         <SectionHead index="01" kicker="Where to next" title={<>Three doors, one valley.</>} lead="The winery, the wedding, or the long table — every path starts in the same granite soil." />
         <div className="mt-12 grid lg:grid-cols-12 gap-8">
           <Reveal className="lg:col-span-7">
-            <Link to="/winery" className="group block border-2 border-granite-900 bg-bone hover:shadow-hard transition-shadow duration-300">
-              <div className="img-frame-alt overflow-hidden">
-                <img src={IMG.cellarDoor} alt="A pour of Shiraz at the cellar door" className="w-full h-64 sm:h-80 object-cover transition-transform duration-700 group-hover:scale-[1.04]" loading="lazy" />
+            <Link to="/winery" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
+              <div className="img-frame-alt overflow-hidden lux-zoom">
+                <img src={IMG.cellarDoor} alt="A pour of Shiraz at the cellar door" className="w-full h-64 sm:h-80 object-cover" loading="lazy" />
               </div>
               <div className="p-6 sm:p-8">
                 <p className="kicker text-granite-500">01 — The winery</p>
@@ -166,10 +166,10 @@ function Classic() {
           </Reveal>
           <div className="lg:col-span-5 flex flex-col gap-8">
             <Reveal delay={100}>
-              <Link to="/weddings" className="group block border-2 border-granite-900 bg-bone hover:shadow-hard transition-shadow duration-300">
+              <Link to="/weddings" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
                 <div className="flex flex-col sm:flex-row">
-                  <div className="img-frame sm:w-44 shrink-0 overflow-hidden">
-                    <img src={IMG.wedding} alt="Ceremony chairs between vine rows" className="w-full h-40 sm:h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" loading="lazy" />
+                  <div className="img-frame sm:w-44 shrink-0 overflow-hidden lux-zoom">
+                    <img src={IMG.wedding} alt="Ceremony chairs between vine rows" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-5 sm:p-6">
                     <p className="kicker text-granite-500">02 — Weddings</p>
@@ -183,10 +183,10 @@ function Classic() {
               </Link>
             </Reveal>
             <Reveal delay={180}>
-              <Link to="/events" className="group block border-2 border-granite-900 bg-bone hover:shadow-hard transition-shadow duration-300">
+              <Link to="/events" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
                 <div className="flex flex-col sm:flex-row">
-                  <div className="img-frame-alt sm:w-44 shrink-0 overflow-hidden">
-                    <img src={IMG.longTable} alt="Long table dressed for dinner under festoon lights" className="w-full h-40 sm:h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" loading="lazy" />
+                  <div className="img-frame-alt sm:w-44 shrink-0 overflow-hidden lux-zoom">
+                    <img src={IMG.longTable} alt="Long table dressed for dinner under festoon lights" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-5 sm:p-6">
                     <p className="kicker text-granite-500">03 — Events</p>
@@ -208,7 +208,7 @@ function Classic() {
       {/* Story + visit */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20 grid lg:grid-cols-2 gap-12 items-start">
         <Reveal>
-          <div className="img-frame border-2 border-granite-900 shadow-hard">
+          <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
             <img src={IMG.granite} alt="Granite boulders and river red gums on the Harcourt hillside" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
           </div>
         </Reveal>

@@ -110,7 +110,7 @@ export default function Winery() {
         />
         <div className="mt-10 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
-            <div className="img-frame border-2 border-granite-900 shadow-hard">
+            <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
               <img src={IMG.barrels} alt="Oak barrels resting in the granite cellar" className="w-full h-[280px] sm:h-[380px] object-cover img-in" />
             </div>
           </Reveal>
@@ -171,7 +171,7 @@ export default function Winery() {
             const soldOut = p.stock === 0;
             return (
               <Reveal key={p.id} delay={(i % 4) * 80}>
-                <article className="group border-2 border-granite-900 bg-bone flex flex-col hover:shadow-hard transition-shadow duration-300">
+                <article className="group border-2 border-granite-900 bg-bone flex flex-col lux-card">
                   <button type="button" onClick={() => setSelectedId(p.id)} className="text-left w-full cursor-pointer">
                     <div className="bg-granite-100/80 border-b-2 border-granite-900 grid place-items-center py-7 overflow-hidden">
                       <BottleArt product={p} className="h-48 w-auto transition-transform duration-500 group-hover:-translate-y-1.5" />
@@ -239,7 +239,7 @@ export default function Winery() {
             </Link>
           </Reveal>
           <Reveal delay={120}>
-            <div className="img-frame-alt border-2 border-bone/40">
+            <div className="img-frame-alt border-2 border-bone/40 lux-zoom">
               <img src={IMG.bottles} alt="Wine, beer and mead bottles on a granite table" className="w-full h-[280px] sm:h-[380px] object-cover img-in" loading="lazy" />
             </div>
           </Reveal>

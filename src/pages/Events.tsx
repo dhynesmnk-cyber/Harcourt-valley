@@ -99,7 +99,7 @@ export default function Events() {
           <section key={s.id} id={`type-${s.id}`} className={`py-16 sm:py-20 ${idx % 2 === 1 ? "bg-granite-100/50 border-y-2 border-granite-300" : ""}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 items-center">
               <Reveal className={idx % 2 === 1 ? "lg:order-2" : ""}>
-                <div className={`${idx % 2 === 1 ? "img-frame-alt" : "img-frame"} border-2 border-granite-900 shadow-hard-sm`}>
+                <div className={`${idx % 2 === 1 ? "img-frame-alt" : "img-frame"} border-2 border-granite-900 shadow-hard-sm lux-zoom`}>
                   <img src={s.img} alt={s.alt} className="w-full h-[260px] sm:h-[360px] object-cover img-in" loading="lazy" />
                 </div>
               </Reveal>
