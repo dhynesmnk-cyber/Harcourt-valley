@@ -1,26 +1,70 @@
+```
 # Dependencies
-node_modules
+node_modules/
 
-# Build output
-dist
-dist-ssr
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Local env & editor
-*.local
+# Build artifacts
+dist/
+build/
+*.min.js
+*.min.css
+*.bundle.js
+
+# Environment variables
 .env
+.env.local
 .env.*
+!.env.example
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-.vscode/*
-!.vscode/extensions.json
-.idea
+Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
 
-# Vite cache
-.vite
-node_modules/
-.next/
-dist/
-build/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+```

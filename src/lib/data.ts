@@ -211,44 +211,44 @@ export const EVENT_SUBTYPES: { value: EventSubtype; label: string }[] = [
 export function seedProducts(): Product[] {
   return [
     {
-      id: "p1", name: "Granite Face Shiraz", type: "wine", varietal: "Shiraz", vintage: "2022",
-      priceCents: 3800, stripePriceId: "price_HVshiraz22", stock: 42, featured: true, active: true,
-      description: "Dark cherry and pepper, soft tannin, grown on granite a short walk from the cellar door. Drink now or hold five years. Good with lamb.",
+      id: "old-vine-shiraz-2019", name: "2019 Old Vine Shiraz", type: "wine", varietal: "Shiraz", vintage: "2019",
+      priceCents: 6000, stripePriceId: "price_HVoldvineshiraz19", stock: 60, featured: true, active: true,
+      description: "The old vines at Harcourt Valley Vineyards were planted in 1975 by Ray and Barbara Broughton who established the vineyards. The vines are the oldest in the Mount Alexander Shire and sit at the lowest part of the property making them lower yielding and slower ripening. The Old Vine wines are only made in years when the fruit is of an exceptional quality. Production is limited to 60 cases. The wines are given only the finest French oak ensuring well integrated oak flavours and a fine tannin structure the complements the length and intensity of the wine.",
     },
     {
-      id: "p2", name: "Schoolhouse Cabernet", type: "wine", varietal: "Cabernet Sauvignon", vintage: "2021",
-      priceCents: 3600, stripePriceId: "price_HVcab21", stock: 28, featured: true, active: true,
-      description: "Blackcurrant and cedar with a line of gravelly tannin. Our driest block, picked late. Built for the cellar — or a long lunch.",
+      id: "cabernet-sauvignon", name: "Cabernet Sauvignon", type: "wine", varietal: "Cabernet Sauvignon", vintage: null,
+      priceCents: 2500, stripePriceId: "price_HVcabsauv", stock: 108, featured: true, active: true,
+      description: "Harcourt Valley Cabernet Sauvignon displays great lifted aromatics of black current, mint, with a hint of eucalypt. This medium to full bodied wine shows a blackcurrant and savoury herbaceous pallet with slightly bigger tannins providing a great mouth feel for this wine.",
     },
     {
-      id: "p3", name: "Valley Riesling", type: "wine", varietal: "Riesling", vintage: "2023",
-      priceCents: 3000, stripePriceId: "price_HVries23", stock: 51, featured: false, active: true,
-      description: "Lime and wet stone, crisp natural acid. Drink it cold on the deck with oysters or nothing at all.",
+      id: "chardonnay", name: "Chardonnay", type: "wine", varietal: "Chardonnay", vintage: null,
+      priceCents: 3000, stripePriceId: "price_HVchardonnay", stock: 108, featured: true, active: true,
+      description: "The Harcourt Valley Chardonnay is made in a lightly oaked style, seeing wood for only 6 weeks during fermentation and then transferred to tank for maturation before bottling. This fruit driven style of Chardonnay displays a light golden straw hue, a hint of French oak and citrus aromas. The palate shows peach and fig with a small amount of malolactic fermentation (around 20%) and the mouth feel is rich yet textural, followed by a clean dry finish. A wine that can be enjoyed now, always selling out before the next vintage is ready.",
     },
     {
-      id: "p4", name: "Fogline Chardonnay", type: "wine", varietal: "Chardonnay", vintage: "2022",
-      priceCents: 3400, stripePriceId: "price_HVchard22", stock: 19, featured: false, active: true,
-      description: "White peach, a whisper of oak, cool-fermented and unhurried. Picked from the east block where the fog sits until ten.",
+      id: "ginger-kid-4-5", name: "Ginger Kid 4.5% - 24 x 330ml", type: "beer", varietal: "Ginger beer", vintage: null,
+      priceCents: 8000, stripePriceId: "price_HVgingerkid45", stock: 48, featured: false, active: true,
+      description: "Around Harcourt Valley, the Ginger Kid is known for its kick. We don't dare over-sweeten it. The Ginger Kid simply is how it is - strong, bitey and varying with the seasons - just as nature intended. Refreshingly honest, the Ginger Kid has 4.5% alcohol, zero gluten and the ripsnorting zing of genuine Aussie ginger.",
     },
     {
-      id: "p5", name: "Old Vine Muscat", type: "wine", varietal: "Muscat à Petits Grains", vintage: "2019",
-      priceCents: 4000, stripePriceId: "price_HVmuscat19", stock: 12, featured: false, active: true,
-      description: "Apricot, musk and orange peel from vines older than the shire's records. Fortified, patient, poured in small glasses.",
+      id: "ginger-kid-8", name: "Ginger Kid Extra Strong 8% - 24 x 330ml", type: "beer", varietal: "Ginger beer", vintage: null,
+      priceCents: 8000, stripePriceId: "price_HVgingerkid8", stock: 48, featured: false, active: true,
+      description: "Around Harcourt Valley, the Ginger Kid is known for its kick. We don't dare over-sweeten it. The Ginger Kid simply is how it is - strong, bitey and varying with the seasons - just as nature intended. Refreshingly honest, the Ginger Kid has 8.0% alcohol, zero gluten and the ripsnorting zing of genuine Aussie ginger.",
     },
     {
-      id: "p6", name: "Harcourt Pale", type: "beer", varietal: "Pale ale", vintage: null,
-      priceCents: 1400, stripePriceId: "price_HVpale", stock: 64, featured: false, active: true,
-      description: "A pale ale brewed with apples from the orchard next door. Clean, faintly cider-ish, dangerously drinkable in the garden.",
+      id: "riesling", name: "Riesling", type: "wine", varietal: "Riesling", vintage: null,
+      priceCents: 2000, stripePriceId: "price_HVriesling", stock: 108, featured: false, active: true,
+      description: "Harcourt Valley Riesling is made in an off dry style displaying lifted floral aromas, followed by a slightly sweet palate with hints of citrus (lime) and plenty of acidity to dry out the finish. This is a great wine to enjoy with spicy Asian dishes, cheese platters or on its own on a warm sunny day.",
     },
     {
-      id: "p7", name: "Golden Orchard Mead", type: "mead", varietal: "Apple-blossom mead", vintage: null,
-      priceCents: 2600, stripePriceId: "price_HVmead", stock: 0, featured: false, active: true,
-      description: "Honey from hives in the orchard rows, slow-fermented for nine months. Apricot and blossom, just off-dry. Next batch is resting.",
+      id: "rose", name: "Rosé", type: "wine", varietal: "Malbec Rosé", vintage: null,
+      priceCents: 2000, stripePriceId: "price_HVrose", stock: 108, featured: true, active: true,
+      description: "Made from a small parcel of Malbec grown at Harcourt Valley Vineyards. A wine that can be enjoyed now, always selling out before the next vintage is ready.",
     },
     {
-      id: "p8", name: "Blush Grenache", type: "wine", varietal: "Grenache", vintage: "2023",
-      priceCents: 2800, stripePriceId: "price_HVblush23", stock: 33, featured: true, active: true,
-      description: "Pale, dry, raspberry pip and a little grip. Picked early, pressed straight away. The one that disappears fastest at the cellar door.",
+      id: "sparkling-rose", name: "Sparkling Rosè", type: "wine", varietal: "Sparkling Rosé", vintage: "NV",
+      priceCents: 2000, stripePriceId: "price_HVsparklingrose", stock: 108, featured: false, active: true,
+      description: "A pale pink colour with fresh fruity aromas. Displaying sweetness on the mid palate with a fresh clean finish. Perfect for a hot summer's day.",
     },
   ];
 }
