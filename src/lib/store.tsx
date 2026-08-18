@@ -1,9 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bee23Profile, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
+  Bee23Profile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
   Sequence, SequenceStep, SiteConfig, TradeOrder,
-  DAY, dstr, iso, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedProducts,
-  seedProfiles, seedSequences, seedSends, seedTradeOrders, uid,
+  IMG,
+  DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
+  seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
 import { isRemote, supabase } from "./supabase";
 import { hydrate, syncState } from "./remote";
@@ -18,10 +19,11 @@ interface StoreState {
   sends: EmailSend[];
   profiles: Bee23Profile[];
   outbox: OutboxItem[];
+  posts: BlogPost[];
   config: SiteConfig;
 }
 
-const STORAGE_KEY = "hv-state-v3";
+const STORAGE_KEY = "hv-state-v4";
 
 function freshState(): StoreState {
   return {
@@ -34,6 +36,7 @@ function freshState(): StoreState {
     sends: seedSends(),
     profiles: seedProfiles(),
     outbox: seedOutbox(),
+    posts: seedPosts(),
     config: seedConfig(),
   };
 }
@@ -42,11 +45,13 @@ function loadState(): StoreState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as StoreState;
+      const parsed = JSON.parse(raw) as Partial<StoreState>;
       if (parsed && parsed.config && parsed.products) {
-        // State saved before a config field existed would arrive without it, so
-        // seed defaults fill the gaps rather than reaching the site as undefined.
-        return { ...parsed, config: { ...seedConfig(), ...parsed.config } };
+        /* Merge over a fresh seed so a slice added after someone's last visit
+           (posts, say) arrives populated instead of undefined, and a config
+           field added since then (typedLines, say) fills in rather than
+           reaching the site as undefined. */
+        return { ...freshState(), ...parsed, config: { ...seedConfig(), ...parsed.config } };
       }
     }
   } catch {
@@ -87,6 +92,9 @@ interface StoreValue extends StoreState {
   updateSequence: (id: string, steps: SequenceStep[]) => void;
   toggleSequence: (id: string) => void;
   updateConfig: (patch: Partial<SiteConfig>) => void;
+  addPost: () => BlogPost;
+  updatePost: (id: string, patch: Partial<BlogPost>) => void;
+  deletePost: (id: string) => void;
   /** False when refused because a live backend makes reseeding destructive. */
   resetDemo: () => boolean;
   sendDueEmails: () => number;
@@ -159,6 +167,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             sends: remote.sends.length ? remote.sends : s.sends,
             profiles: remote.profiles.length ? remote.profiles : s.profiles,
             outbox: remote.outbox.length ? remote.outbox : s.outbox,
+            // The journal has no table yet — posts stay local until the
+            // backend grows one, same as product photo metadata.
+            posts: s.posts,
             config: remote.config,
           };
           synced.current = merged;
@@ -379,6 +390,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, config: { ...s.config, ...patch } }));
   }, []);
 
+  /* ---------- journal ---------- */
+
+  /** Creates an empty draft and returns it so the editor can open on it. */
+  const addPost = useCallback((): BlogPost => {
+    const today = new Date().toISOString().slice(0, 10);
+    const post: BlogPost = {
+      id: uid(),
+      slug: "",
+      title: "",
+      excerpt: "",
+      body: "",
+      category: "Wine",
+      tags: [],
+      author: "Harcourt Valley",
+      authorRole: "The family",
+      publishedAt: today,
+      updatedAt: today,
+      readMinutes: 1,
+      featured: false,
+      published: false,
+      image: IMG.vines,
+      imageAlt: "",
+    };
+    setState((s) => ({ ...s, posts: [post, ...s.posts] }));
+    return post;
+  }, []);
+
+  const updatePost = useCallback((id: string, patch: Partial<BlogPost>) => {
+    setState((s) => ({
+      ...s,
+      posts: s.posts.map((p) => {
+        if (p.id !== id) return p;
+        const next = { ...p, ...patch, updatedAt: new Date().toISOString().slice(0, 10) };
+        /* Keep the derived bits honest without making the editor babysit them. */
+        if (!next.slug.trim()) next.slug = slugify(next.title) || p.id;
+        next.slug = slugify(next.slug);
+        next.readMinutes = readingMinutes(next.body);
+        return next;
+      }),
+    }));
+  }, []);
+
+  const deletePost = useCallback((id: string) => {
+    setState((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== id) }));
+  }, []);
+
   /**
    * Reseeds the demo. Refused outright once a backend is live: the diff sync
    * would read a wholesale swap as "delete every row" and take the real
@@ -434,6 +491,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateSequence,
     toggleSequence,
     updateConfig,
+    addPost,
+    updatePost,
+    deletePost,
     resetDemo,
     sendDueEmails,
     dueEmails,

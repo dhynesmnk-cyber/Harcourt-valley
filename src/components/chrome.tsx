@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useStore } from "../lib/store";
 import { fmtDate, money } from "../lib/data";
+import { BUSINESS, fullAddress } from "../lib/site";
 import { validEmail } from "./ui";
 import { ArrowRight, BasketIcon, CloseIcon, FieldText, MailIcon, MenuIcon, MinusIcon, PhoneIcon, PinIcon, Tick } from "./ui";
 
@@ -15,7 +16,7 @@ export function Wordmark({ dark = false }: { dark?: boolean }) {
       </span>
       <span className="leading-none">
         <span className={`block font-label font-bold tracking-[0.18em] text-[0.82rem] ${dark ? "text-bone" : "text-granite-900"}`}>HARCOURT VALLEY</span>
-        <span className={`block font-label tracking-[0.3em] text-[0.56rem] mt-1 ${dark ? "text-granite-300" : "text-granite-500"}`}>VINEYARDS · HARCOUrt, VIC</span>
+        <span className={`block font-label tracking-[0.3em] text-[0.56rem] mt-1 ${dark ? "text-granite-300" : "text-granite-500"}`}>VINEYARDS · HARCOURT, VIC</span>
       </span>
     </span>
   );
@@ -27,6 +28,7 @@ const NAV = [
   { to: "/winery", label: "Winery" },
   { to: "/weddings", label: "Weddings" },
   { to: "/events", label: "Events" },
+  { to: "/journal", label: "Journal" },
 ];
 
 export function Header() {
@@ -115,10 +117,10 @@ export function Header() {
           </nav>
           <div className="px-8 pb-10 grid sm:grid-cols-2 gap-4 text-sm text-granite-300">
             <p className="flex items-center gap-2.5">
-              <PinIcon className="w-4 h-4 text-ochre" /> 41 Schoolhouse Rd, Harcourt VIC 3453
+              <PinIcon className="w-4 h-4 text-ochre" /> {fullAddress}
             </p>
             <p className="flex items-center gap-2.5">
-              <PhoneIcon className="w-4 h-4 text-ochre" /> (03) 5474 2210
+              <PhoneIcon className="w-4 h-4 text-ochre" /> {BUSINESS.phoneDisplay}
             </p>
           </div>
         </div>
@@ -146,13 +148,20 @@ export function Footer() {
           <p className="kicker text-granite-500">Cellar door</p>
           <ul className="mt-4 space-y-2 text-sm text-granite-300">
             <li className="flex gap-2.5 items-start">
-              <PinIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" /> 41 Schoolhouse Rd, Harcourt VIC 3453
+              <PinIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" />
+              <address className="not-italic">{fullAddress}</address>
             </li>
             <li className="flex gap-2.5 items-start">
-              <PhoneIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" /> (03) 5474 2210
+              <PhoneIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" />
+              <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="hover:text-bone">
+                {BUSINESS.phoneDisplay}
+              </a>
             </li>
             <li className="flex gap-2.5 items-start">
-              <MailIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" /> hello@harcourtvalley.example
+              <MailIcon className="w-4 h-4 mt-0.5 text-ochre shrink-0" />
+              <a href={`mailto:${BUSINESS.email}`} className="hover:text-bone">
+                {BUSINESS.email}
+              </a>
             </li>
           </ul>
         </div>
@@ -173,6 +182,7 @@ export function Footer() {
               { to: "/winery/trade", label: "Trade & stockists" },
               { to: "/weddings", label: "Weddings in the vines" },
               { to: "/events", label: "Events & long tables" },
+              { to: "/journal", label: "The journal" },
               { to: "/admin", label: "Family office (admin)" },
             ].map((l) => (
               <li key={l.to}>
@@ -186,7 +196,9 @@ export function Footer() {
       </div>
       <div className="border-t border-granite-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:justify-between text-xs text-granite-500">
-          <p>© {new Date().getFullYear()} Harcourt Valley Vineyards Pty Ltd · ABN 64 118 220 941 · Licensed</p>
+          <p>
+            © {new Date().getFullYear()} {BUSINESS.legalName} · ABN {BUSINESS.abn} · Licensed
+          </p>
           <p className="font-label tracking-[0.14em] uppercase">Granite country · Central Victoria</p>
         </div>
       </div>

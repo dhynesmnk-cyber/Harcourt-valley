@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { IMG, type EventSubtype } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
-import { AnchorLink, ArrowRight, ClockIcon, MailIcon, PinIcon, Reveal, SectionHead } from "../components/ui";
+import { AnchorLink, ArrowRight, ClockIcon, FaqList, MailIcon, PinIcon, Reveal, SectionHead } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
+import { EVENT_FAQS } from "../lib/faqs";
+import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
+import { BUSINESS, absUrl } from "../lib/site";
 
 interface EventTypeSection {
   id: EventSubtype;
@@ -51,6 +54,48 @@ const SECTIONS: EventTypeSection[] = [
 
 export default function Events() {
   useApplyAppearance();
+
+  useSeo({
+    title: "Vineyard events & long-table dinners near Bendigo",
+    description:
+      "Long-table dinners, parties, product launches and corporate retreats at a working vineyard in Harcourt, Victoria. 40 to 180 guests, the property from 10am to midnight, dinners from $120 a head.",
+    path: "/events",
+    image: IMG.longTable,
+    imageAlt: "A long banquet table under festoon lights in the function shed at Harcourt Valley Vineyards",
+    keywords: ["long table dinner Victoria", "vineyard function venue Bendigo", "corporate retreat Central Victoria", "product launch venue"],
+    jsonLd: [
+      webPageSchema({
+        path: "/events",
+        name: "Events & long tables",
+        description: "Event and function hire at Harcourt Valley Vineyards — long-table dinners, parties, launches and retreats.",
+        primaryImage: IMG.longTable,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "Events", path: "/events" },
+      ]),
+      faqSchema(EVENT_FAQS),
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${absUrl("/events")}#service`,
+        name: "Vineyard event and function venue hire",
+        serviceType: "Event venue",
+        provider: { "@id": `${absUrl("/")}#winery` },
+        url: absUrl("/events"),
+        description:
+          "Private events at Harcourt Valley Vineyards, Harcourt, Victoria: long-table dinners for 40 to 80 guests, parties and long lunches, product launches, and corporate retreats.",
+        offers: {
+          "@type": "AggregateOffer",
+          priceCurrency: "AUD",
+          lowPrice: 1400,
+          highPrice: 2800,
+          offerCount: 4,
+          availability: "https://schema.org/InStock",
+        },
+      },
+    ],
+  });
   const { config } = useStore();
   const [presetSubtype, setPresetSubtype] = useState<EventSubtype | undefined>(undefined);
 
@@ -132,6 +177,22 @@ export default function Events() {
       })}
 
       {/* Enquire */}
+      {/* Questions, answered on the page */}
+      <section id="questions" className="max-w-4xl mx-auto px-4 sm:px-6 py-16" aria-labelledby="evt-faq-heading">
+        <p className="kicker text-granite-500">Before you enquire</p>
+        <h2 id="evt-faq-heading" className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2">
+          The practical questions.
+        </h2>
+        <FaqList faqs={EVENT_FAQS} className="mt-10" />
+        <p className="mt-8 text-sm text-granite-500">
+          Something not covered here? Ring{" "}
+          <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="underline underline-offset-4 hover:text-garnet">
+            {BUSINESS.phoneDisplay}
+          </a>
+          .
+        </p>
+      </section>
+
       <section id="enquire" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
           kicker="Enquire"

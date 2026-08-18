@@ -2,8 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { IMG, money, type Product, type ProductType } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
-import { ArrowRight, BottleArt, CloseIcon, ContourDivider, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { ArrowRight, BottleArt, CloseIcon, ContourDivider, FaqList, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
+import { WINERY_FAQS } from "../lib/faqs";
+import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
+import { BUSINESS, absUrl } from "../lib/site";
 
 const FILTERS: { value: "all" | ProductType; label: string }[] = [
   { value: "all", label: "Everything" },
@@ -99,11 +102,60 @@ export default function Winery() {
   const visible = useMemo(() => products.filter((p) => p.active && (filter === "all" || p.type === filter)), [products, filter]);
   const selected = products.find((p) => p.id === selectedId) ?? null;
 
+  useSeo({
+    title: "The winery & wine shop — Bendigo's most-awarded winery",
+    description:
+      "Shiraz, Cabernet, Chardonnay, Riesling and Rosé grown on decomposed granite at Harcourt, Victoria. 500+ show medals, a 5-star Halliday rating, cellar door Friday to Sunday, and free freight on six bottles.",
+    path: "/winery",
+    image: IMG.barrels,
+    imageAlt: "Oak barrels resting in the granite cellar at Harcourt Valley Vineyards",
+    keywords: ["Bendigo wine region", "Central Victorian Shiraz", "buy Australian wine online", "cellar door Harcourt"],
+    jsonLd: [
+      webPageSchema({
+        path: "/winery",
+        name: "The winery & wine shop",
+        description: "The Harcourt Valley range, tasting notes and online ordering, plus cellar door details.",
+        primaryImage: IMG.barrels,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "The winery", path: "/winery" },
+      ]),
+      faqSchema(WINERY_FAQS),
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: "Harcourt Valley Vineyards wines",
+        numberOfItems: visible.length,
+        itemListElement: visible.map((p, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          item: {
+            "@type": "Product",
+            name: `${p.name}${p.vintage ? " " + p.vintage : ""}`,
+            description: p.description,
+            category: p.type,
+            brand: { "@id": `${absUrl("/")}#winery` },
+            offers: {
+              "@type": "Offer",
+              price: (p.priceCents / 100).toFixed(2),
+              priceCurrency: "AUD",
+              availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              seller: { "@id": `${absUrl("/")}#winery` },
+              url: absUrl("/winery"),
+            },
+          },
+        })),
+      },
+    ],
+  });
+
   return (
     <div>
       {/* Intro */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16">
         <SectionHead
+          as="h1"
           kicker="The winery"
           title={<>Bendigo's most-awarded winery.</>}
           lead="500+ show medals, a 5-star Halliday rating, and the oldest vineyard in the shire — still family-run, still poured by the people who grew it."
@@ -254,6 +306,22 @@ export default function Winery() {
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* Questions, answered on the page */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 pb-16" aria-labelledby="win-faq-heading">
+        <p className="kicker text-granite-500">Good to know</p>
+        <h2 id="win-faq-heading" className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2">
+          Questions about the wine.
+        </h2>
+        <FaqList faqs={WINERY_FAQS} className="mt-10" />
+        <p className="mt-8 text-sm text-granite-500">
+          Ring{" "}
+          <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="underline underline-offset-4 hover:text-garnet">
+            {BUSINESS.phoneDisplay}
+          </a>{" "}
+          for anything else — including whether a sold-out wine is back.
+        </p>
       </section>
 
       {selected ? <ProductModal product={selected} onClose={() => setSelectedId(null)} /> : null}

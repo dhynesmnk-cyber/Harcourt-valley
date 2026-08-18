@@ -2,6 +2,8 @@
 /*  Harcourt Valley — data model, seed content, helpers                */
 /* ------------------------------------------------------------------ */
 
+import journalSeed from "../content/journal.json";
+
 export const IMG = {
   vines: "https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png",
   cellarDoor: "https://image.qwenlm.ai/generated-images/191b0224-3603-4641-9638-e86387ad18a6/_result.png",
@@ -151,6 +153,38 @@ export interface TypedLine {
   page: TypedPage;
   text: string;
   author: string;
+}
+
+/* ---------------- journal (blog) ---------------- */
+
+/**
+ * One journal post. Exactly one image per post, on purpose: it keeps the
+ * cards on the home page even, and it gives every post a single unambiguous
+ * `image` for the BlogPosting schema and the social card.
+ */
+export interface BlogPost {
+  id: string;
+  /** URL segment — /journal/<slug>. Lowercase, hyphens, no punctuation. */
+  slug: string;
+  title: string;
+  /** One or two sentences. Used as the meta description and the card blurb. */
+  excerpt: string;
+  /** Markdown-lite: blank-line paragraphs, "## " headings, "- " lists, "> " quotes. */
+  body: string;
+  category: string;
+  tags: string[];
+  author: string;
+  authorRole: string;
+  /** ISO date (YYYY-MM-DD). */
+  publishedAt: string;
+  updatedAt: string;
+  readMinutes: number;
+  featured: boolean;
+  published: boolean;
+  /** The single hero image for this post. */
+  image: string;
+  /** Alt text — required, because an image without it helps nobody. */
+  imageAlt: string;
 }
 
 export interface SiteConfig {
@@ -488,4 +522,86 @@ export function seedConfig(): SiteConfig {
     palette: "granite",
     displayFont: "fraunces",
   };
+}
+
+/* ---------------- journal helpers ---------------- */
+
+export function seedPosts(): BlogPost[] {
+  return (journalSeed as BlogPost[]).map((p) => ({ ...p, tags: [...p.tags] }));
+}
+
+/** Turns a title into a URL-safe slug. */
+export function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['\u2019]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+}
+
+/** Rough reading time, rounded up, minimum one minute. */
+export function readingMinutes(body: string): number {
+  const words = body.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+export type BodyBlock =
+  | { kind: "h2"; text: string }
+  | { kind: "h3"; text: string }
+  | { kind: "p"; text: string }
+  | { kind: "quote"; text: string }
+  | { kind: "list"; items: string[] };
+
+/**
+ * Markdown-lite parser. Deliberately tiny: the admin editor is one textarea,
+ * and the only structure we need is headings, paragraphs, lists and quotes —
+ * which is also all the structure a crawler wants out of an article.
+ */
+export function parseBody(body: string): BodyBlock[] {
+  const blocks: BodyBlock[] = [];
+  const chunks = body.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  for (const raw of chunks) {
+    const chunk = raw.trim();
+    if (!chunk) continue;
+    const lines = chunk.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.every((l) => l.startsWith("- "))) {
+      blocks.push({ kind: "list", items: lines.map((l) => l.slice(2).trim()) });
+      continue;
+    }
+    for (const line of lines) {
+      if (line.startsWith("### ")) blocks.push({ kind: "h3", text: line.slice(4).trim() });
+      else if (line.startsWith("## ")) blocks.push({ kind: "h2", text: line.slice(3).trim() });
+      else if (line.startsWith("> ")) blocks.push({ kind: "quote", text: line.slice(2).trim() });
+      else if (line.startsWith("- ")) blocks.push({ kind: "list", items: [line.slice(2).trim()] });
+      else {
+        const prev = blocks[blocks.length - 1];
+        if (prev && prev.kind === "p") prev.text += " " + line;
+        else blocks.push({ kind: "p", text: line });
+      }
+    }
+  }
+  return blocks;
+}
+
+/** Plain-text version of a post body — for JSON-LD articleBody and llms.txt. */
+export function bodyToText(body: string): string {
+  return parseBody(body)
+    .map((b) => (b.kind === "list" ? b.items.join(" ") : b.text))
+    .join(" ");
+}
+
+export function fmtPostDate(s: string): string {
+  const d = new Date(s.length <= 10 ? s + "T12:00:00" : s);
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Published posts, newest first. The only list the public site should render. */
+export function publishedPosts(posts: BlogPost[]): BlogPost[] {
+  return posts
+    .filter((p) => p.published)
+    .slice()
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : a.publishedAt > b.publishedAt ? -1 : 0));
 }

@@ -37,12 +37,15 @@ export function SectionHead({
   lead,
   dark = false,
   className = "",
+  as: Heading = "h2",
 }: {
   kicker: string;
   title: React.ReactNode;
   lead?: React.ReactNode;
   dark?: boolean;
   className?: string;
+  /** Use "h1" when this heading is the page's only top-level one. */
+  as?: "h1" | "h2";
 }) {
   return (
     <Reveal className={className}>
@@ -51,8 +54,12 @@ export function SectionHead({
             numeral used to, without shouting a number at anyone. */}
         <span className="block w-12 h-[2px] bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
         <p className={`kicker mt-4 ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
-        <h2 className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</h2>
-        {lead ? <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`}>{lead}</p> : null}
+        <Heading className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</Heading>
+        {lead ? (
+          <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`} data-speakable>
+            {lead}
+          </p>
+        ) : null}
       </div>
     </Reveal>
   );
@@ -395,4 +402,47 @@ export function useMountStagger(count: number, step = 70) {
     return () => window.clearInterval(t);
   }, [count, step]);
   return shown;
+}
+
+/* ---------------- FAQ block (renders the same Q&A the schema declares) ---------------- */
+
+/**
+ * Native <details> so the answers are in the DOM whether or not they're open —
+ * a crawler and a screen reader both get the full text, and there's no JS
+ * between the question and the answer.
+ */
+export function FaqList({ faqs, className = "" }: { faqs: { q: string; a: string }[]; className?: string }) {
+  return (
+    <div className={`border-t-2 border-granite-900 ${className}`}>
+      {faqs.map((f) => (
+        <details key={f.q} className="group border-b-2 border-granite-900">
+          <summary className="flex items-start gap-4 cursor-pointer list-none py-5 min-h-[44px] hover:bg-granite-100/50 transition-colors px-1">
+            <h3 className="font-display text-lg sm:text-xl font-medium flex-1">{f.q}</h3>
+            <span className="mt-1 shrink-0 text-granite-500 transition-transform duration-300 group-open:rotate-45" aria-hidden="true">
+              <PlusIcon className="w-5 h-5" />
+            </span>
+          </summary>
+          <p className="pb-6 px-1 pr-10 text-granite-700 leading-relaxed max-w-3xl">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- quick facts strip (built to be quoted) ---------------- */
+
+export function FactGrid({ facts }: { facts: readonly { label: string; value: string; detail: string }[] }) {
+  return (
+    <dl className="grid sm:grid-cols-2 lg:grid-cols-3 border-l-2 border-t-2 border-granite-900">
+      {facts.map((f) => (
+        <div key={f.label} className="border-r-2 border-b-2 border-granite-900 p-5">
+          <dt className="kicker text-granite-500">{f.label}</dt>
+          <dd>
+            <span className="block font-display text-3xl font-medium mt-1.5">{f.value}</span>
+            <span className="block text-sm text-granite-700 mt-1.5">{f.detail}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
 }

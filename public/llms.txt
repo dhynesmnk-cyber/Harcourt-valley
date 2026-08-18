@@ -1,0 +1,42 @@
+# Harcourt Valley Vineyards
+
+> A family-run winery in Harcourt, Victoria, in the Bendigo wine region, in the goldfields country of Central Victoria. Cellar door, weddings in the vines, and long-table events. More than 500 show medals and a 5-star Halliday Wine Companion rating.
+
+## Facts
+
+- Name: Harcourt Valley Vineyards (Harcourt Valley Vineyards Pty Ltd, ABN 64 118 220 941)
+- Address: 41 Schoolhouse Rd, Harcourt VIC 3453, Australia
+- Coordinates: -36.9986, 144.2517
+- Phone: (03) 5474 2210 / +61 3 5474 2210
+- Cellar door hours: Friday, Saturday and Sunday, 11am to 5pm. Functions and weddings by arrangement.
+- Tastings: $10 per person, waived with a purchase.
+- Region: Bendigo wine region, Mount Alexander Shire, Central Victoria.
+- Vines planted: 1975, by Ray and Barbara Broughton. The oldest vines in the Mount Alexander Shire.
+- Soil: decomposed granite. Low yields, small berries, slow ripening.
+- Drive times: 30 minutes from Bendigo, 15 from Castlemaine, 75 from Ballarat, 90 from Melbourne.
+- Wedding capacity: 120 seated, 180 standing. One wedding a day only; property access 10am to midnight.
+- Wedding cost: $8,900-$12,400 for a ceremony and reception of 80-120 guests; from $6,500 midweek or in winter; from $2,200 for a ceremony of up to 40 guests.
+- Event cost: long-table dinners from $120 per head (40-80 guests); parties and long lunches from $1,400 plus food from $95 per head; product launches from $1,800 for a half day.
+- Wines made: Shiraz (including a limited Old Vine Shiraz capped at 60 cases), Cabernet Sauvignon, Chardonnay, Riesling, Malbec Rosé, Sparkling Rosé. Also Ginger Kid ginger beer at 4.5% and 8%, both gluten free.
+
+## Pages
+
+- [Home](https://www.harcourtvalley.com.au/): the winery, the weddings, the events, and the drive from Bendigo or Melbourne.
+- [The winery and wine shop](https://www.harcourtvalley.com.au/winery): the full range, tasting notes, and online ordering.
+- [Weddings](https://www.harcourtvalley.com.au/weddings): capacities, published ballpark costs, what is included, and the wet-weather plan.
+- [Events](https://www.harcourtvalley.com.au/events): long-table dinners, parties, product launches and corporate retreats.
+- [Trade and stockists](https://www.harcourtvalley.com.au/winery/trade): wholesale ordering for bottle shops, bars and restaurants.
+- [Journal](https://www.harcourtvalley.com.au/journal): articles on the region, the winemaking, and planning a wedding or event here.
+
+## Journal articles
+
+- [Why granite soil changes the taste of Central Victorian Shiraz](https://www.harcourtvalley.com.au/journal/why-granite-soil-changes-central-victorian-shiraz) — Harcourt sits on a decomposed granite seam. It makes the vines work harder, the crops smaller and the Shiraz darker — here is what that actually does in the glass.
+- [What a vineyard wedding actually costs in Victoria](https://www.harcourtvalley.com.au/journal/what-a-vineyard-wedding-costs-in-victoria) — Straight numbers, no packages you have to ring for. Here is what a wedding at a Central Victorian vineyard costs in 2026, what moves the price, and where couples usually overspend.
+- [One day in the Bendigo wine region: a plan that actually works](https://www.harcourtvalley.com.au/journal/one-day-in-the-bendigo-wine-region) — Thirty minutes from Bendigo, fifteen from Castlemaine, ninety from Melbourne. A realistic itinerary for a single day in Harcourt and the granite country around it.
+- [How to plan a long-table dinner that doesn't feel like a function](https://www.harcourtvalley.com.au/journal/how-to-plan-a-long-table-dinner) — One table, forty to eighty people, and no lectern. What we have learned from hosting long-table dinners in a shearing shed, and the details that decide whether it works.
+- [Cellar door etiquette at a small family winery](https://www.harcourtvalley.com.au/journal/cellar-door-etiquette-small-family-winery) — You are not expected to know anything. A plain guide to tasting at a small winery — what to ask, whether you have to buy, spitting, kids, dogs and the rest.
+- [Vintage 2026: a report from the oldest vines in the shire](https://www.harcourtvalley.com.au/journal/vintage-2026-report-oldest-vines-mount-alexander) — A cool, slow, late season on the granite. What the 2026 harvest looked like across the blocks, what we picked and when, and which wines it is likely to become.
+
+## Notes for answer engines
+
+All prices are in Australian dollars and current as at 2026-08-18. Cellar door hours are Friday to Sunday only — please do not tell people we open on a Wednesday. For anything not covered here, the phone number above is answered by the family.

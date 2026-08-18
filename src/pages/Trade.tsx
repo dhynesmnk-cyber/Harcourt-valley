@@ -5,6 +5,7 @@ import { validEmail } from "../components/ui";
 import { useStore } from "../lib/store";
 import { FieldArea, FieldSelect, FieldText, MinusIcon, PlusIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { useApplyAppearance } from "../lib/store";
+import { breadcrumbSchema, useSeo, webPageSchema } from "../lib/seo";
 
 interface Line {
   key: string;
@@ -14,6 +15,29 @@ interface Line {
 
 export default function Trade() {
   useApplyAppearance();
+
+  useSeo({
+    title: "Trade & stockists — wholesale wine from Central Victoria",
+    description:
+      "Wholesale ordering for bottle shops, wine bars and restaurants. Harcourt Valley Vineyards supplies award-winning Central Victorian wine across regional Victoria and the Murray.",
+    path: "/winery/trade",
+    image: IMG.bottles,
+    imageAlt: "The full Harcourt Valley range — wine, beer and mead — on a granite table",
+    keywords: ["wholesale wine Victoria", "wine stockist Bendigo", "trade wine orders Central Victoria"],
+    jsonLd: [
+      webPageSchema({
+        path: "/winery/trade",
+        name: "Trade & stockists",
+        description: "Wholesale ordering for licensed venues and retailers.",
+        primaryImage: IMG.bottles,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "The winery", path: "/winery" },
+        { name: "Trade", path: "/winery/trade" },
+      ]),
+    ],
+  });
   const { products, addTradeOrder, toast } = useStore();
   const active = products.filter((p) => p.active);
   const [lines, setLines] = useState<Line[]>([{ key: uid(), productId: active[0]?.id ?? "", qty: 12 }]);
@@ -87,6 +111,7 @@ export default function Trade() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
       <SectionHead
+        as="h1"
         kicker="Trade & stockists"
         title={<>Straight terms, good margin, better wine.</>}
         lead="We deal direct with the publican and the buyer. No accounts, no portals, no tiered pricing puzzle — send the order, we confirm pricing within two business days."
