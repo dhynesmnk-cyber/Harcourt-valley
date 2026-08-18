@@ -32,14 +32,12 @@ export function Reveal({ children, className = "", delay = 0 }: { children: Reac
 /* ---------------- section header with index numeral ---------------- */
 
 export function SectionHead({
-  index,
   kicker,
   title,
   lead,
   dark = false,
   className = "",
 }: {
-  index: string;
   kicker: string;
   title: React.ReactNode;
   lead?: React.ReactNode;
@@ -48,15 +46,13 @@ export function SectionHead({
 }) {
   return (
     <Reveal className={className}>
-      <div className="flex items-end gap-4 sm:gap-6">
-        <span className={`num-ghost text-[4.5rem] sm:text-[7rem] select-none ${dark ? "opacity-70" : ""}`} aria-hidden="true" style={dark ? { WebkitTextStrokeColor: "var(--color-granite-500)" } : undefined}>
-          {index}
-        </span>
-        <div className="pb-1 sm:pb-3 min-w-0">
-          <p className={`kicker ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
-          <h2 className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</h2>
-          {lead ? <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`}>{lead}</p> : null}
-        </div>
+      <div className="min-w-0">
+        {/* A short garnet-to-ochre hairline carries the structure the index
+            numeral used to, without shouting a number at anyone. */}
+        <span className="block w-12 h-[2px] bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
+        <p className={`kicker mt-4 ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
+        <h2 className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</h2>
+        {lead ? <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`}>{lead}</p> : null}
       </div>
     </Reveal>
   );
@@ -330,17 +326,6 @@ export function BottleArt({ product, className = "" }: { product: Product; class
         </text>
       ) : null}
     </svg>
-  );
-}
-
-/* ---------------- stat numeral ---------------- */
-
-export function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="py-5">
-      <p className="font-display text-3xl sm:text-4xl font-medium text-granite-900 leading-none">{value}</p>
-      <p className="kicker text-granite-500 mt-2">{label}</p>
-    </div>
   );
 }
 

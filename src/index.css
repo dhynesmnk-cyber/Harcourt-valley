@@ -675,6 +675,36 @@ body::before {
 }
 
 /* =====================================================================
+   TYPED LINES
+   ===================================================================== */
+
+.typed-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 0.12em;
+  vertical-align: -0.12em;
+  /* Solid while the line is being written, blinking once it rests — the same
+     tell a text cursor gives in any editor. */
+  animation: caretBlink 1.05s steps(1, end) infinite;
+  animation-play-state: paused;
+}
+.typed-caret[data-done="true"] {
+  animation-play-state: running;
+}
+
+@keyframes caretBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* =====================================================================
    GUIDED TOUR (admin walkthrough)
    ===================================================================== */
 
@@ -789,6 +819,10 @@ body::before {
   }
   .tour-halo {
     opacity: 0.5;
+  }
+  /* The line is rendered whole rather than typed, so the caret has no job. */
+  .typed-caret {
+    display: none;
   }
   .btn:hover,
   .lux-lift:hover,

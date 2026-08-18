@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { IMG, type Ballpark } from "../../lib/data";
+import React, { useMemo, useState } from "react";
+import { IMG, TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
 import { useStore } from "../../lib/store";
 import { MinusIcon, PlusIcon, Tick } from "../../components/ui";
+import { TypedPreview } from "../../components/TypedLines";
 
 function BallparkEditor({ label, rows, onSave }: { label: string; rows: Ballpark[]; onSave: (rows: Ballpark[]) => void }) {
   const [draft, setDraft] = useState<Ballpark[]>(rows);
@@ -168,6 +169,150 @@ function CopyTab() {
   );
 }
 
+/* ---------------- typed lines ---------------- */
+
+function TypedTab() {
+  const { config, updateConfig, toast } = useStore();
+  const [page, setPage] = useState<TypedPage>("home");
+  const [draft, setDraft] = useState<TypedLine[]>(config.typedLines ?? []);
+
+  const rows = useMemo(() => draft.filter((l) => l.page === page), [draft, page]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(config.typedLines ?? []);
+
+  const set = (id: string, patch: Partial<TypedLine>) => setDraft((d) => d.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  const remove = (id: string) => setDraft((d) => d.filter((l) => l.id !== id));
+  const add = () => setDraft((d) => [...d, { id: uid(), page, text: "", author: "" }]);
+
+  /** Moves a line within its own page, leaving the other pages' lines alone. */
+  const move = (id: string, dir: -1 | 1) => {
+    setDraft((d) => {
+      const mine = d.filter((l) => l.page === page);
+      const at = mine.findIndex((l) => l.id === id);
+      const to = at + dir;
+      if (at < 0 || to < 0 || to >= mine.length) return d;
+      const reordered = [...mine];
+      [reordered[at], reordered[to]] = [reordered[to], reordered[at]];
+      let n = 0;
+      return d.map((l) => (l.page === page ? reordered[n++] : l));
+    });
+  };
+
+  const save = () => {
+    updateConfig({ typedLines: draft.filter((l) => l.text.trim()).map((l) => ({ ...l, text: l.text.trim(), author: l.author.trim() })) });
+    toast("Typed lines saved — live on the site.");
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="border-2 border-granite-900 bg-granite-100/40 p-5">
+        <p className="kicker text-granite-500">How this reads on the site</p>
+        <p className="text-sm text-granite-700 mt-2 leading-relaxed">
+          These lines type themselves out one letter at a time, one after another, where the boxes of numbers used to be. Leave{" "}
+          <span className="font-semibold">who said it</span> empty and the line reads as a plain statement about the place. Fill it in and it reads as a review, in quote marks with
+          their name underneath.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Which page">
+        {TYPED_PAGES.map((p) => {
+          const n = draft.filter((l) => l.page === p && l.text.trim()).length;
+          return (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              aria-pressed={page === p}
+              className={`btn btn-sm ${page === p ? "btn-dark" : "btn-ghost"}`}
+            >
+              {typedPageLabel[p]}
+              <span className={`text-[0.65rem] font-bold px-1.5 border ${page === p ? "border-bone/50" : "border-granite-300"}`}>{n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <fieldset className="border-2 border-granite-900 bg-bone">
+        <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">Preview · {typedPageLabel[page]}</legend>
+        <div className="p-5">
+          <TypedPreview lines={rows} />
+        </div>
+      </fieldset>
+
+      <fieldset className="border-2 border-granite-900 bg-bone">
+        <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">{typedPageLabel[page]} · the lines</legend>
+        <div className="p-5 space-y-4">
+          {rows.map((l, i) => (
+            <div key={l.id} className="border border-granite-300 bg-granite-100/40 p-4">
+              <div className="grid sm:grid-cols-[1fr_260px] gap-3">
+                <div>
+                  <label className="field-label" htmlFor={`tl-${l.id}-t`}>
+                    The line
+                  </label>
+                  <textarea
+                    id={`tl-${l.id}-t`}
+                    className="field-input min-h-[70px]"
+                    value={l.text}
+                    placeholder="Something a guest actually said, or a plain fact about the place"
+                    onChange={(e) => set(l.id, { text: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor={`tl-${l.id}-a`}>
+                    Who said it <span className="normal-case tracking-normal font-normal text-granite-500">— leave empty for a feature</span>
+                  </label>
+                  <input
+                    id={`tl-${l.id}-a`}
+                    className="field-input"
+                    value={l.author}
+                    placeholder="e.g. Jess & Tom O'Neill"
+                    onChange={(e) => set(l.id, { author: e.target.value })}
+                  />
+                  <p className="text-[0.75rem] text-granite-500 mt-2">{l.author.trim() ? "Shows in quote marks, with the name underneath." : "Shows as a plain line, no quote marks."}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <button type="button" className="btn btn-sm btn-ghost px-3" onClick={() => move(l.id, -1)} disabled={i === 0} aria-label={`Move line ${i + 1} earlier`}>
+                  ↑
+                </button>
+                <button type="button" className="btn btn-sm btn-ghost px-3" onClick={() => move(l.id, 1)} disabled={i === rows.length - 1} aria-label={`Move line ${i + 1} later`}>
+                  ↓
+                </button>
+                <span className="text-xs text-granite-500 ml-1">
+                  {i + 1} of {rows.length}
+                </span>
+                <button type="button" className="btn btn-sm btn-ghost px-3 ml-auto text-garnet" onClick={() => remove(l.id)} aria-label={`Remove line ${i + 1}`}>
+                  <MinusIcon className="w-4 h-4" /> Remove
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {rows.length === 0 ? (
+            <div className="border-2 border-dashed border-granite-300 px-6 py-8 text-center">
+              <p className="font-display text-xl text-granite-700">Nothing types here yet.</p>
+              <p className="text-sm text-granite-500 mt-1.5">Add a line and this section of the site starts writing itself out.</p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3 pt-1">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={add}>
+              <PlusIcon className="w-3.5 h-3.5" /> Add a line
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" disabled={!dirty} onClick={save}>
+              {dirty ? "Save these lines" : "Saved"}
+            </button>
+            {dirty ? (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(config.typedLines ?? [])}>
+                Undo my changes
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
 function AppearanceTab() {
   const { config, updateConfig, toast } = useStore();
   const [palette, setPalette] = useState(config.palette);
@@ -282,7 +427,7 @@ function AppearanceTab() {
 }
 
 export function CmsView() {
-  const [tab, setTab] = useState<"copy" | "appearance">("copy");
+  const [tab, setTab] = useState<"copy" | "typed" | "appearance">("copy");
   return (
     <div>
       <p className="kicker text-granite-500">Website content</p>
@@ -292,21 +437,26 @@ export function CmsView() {
         {(
           [
             { id: "copy", label: "Words & figures" },
+            { id: "typed", label: "Reviews & features" },
             { id: "appearance", label: "Colours & type" },
           ] as const
-        ).map((t) => (
+        ).map((t, i) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
-            className={`px-5 py-2.5 font-label text-[0.78rem] font-semibold uppercase tracking-[0.1em] min-h-[44px] transition-colors ${tab === t.id ? "bg-granite-900 text-bone" : "hover:bg-granite-100"} ${t.id === "appearance" ? "border-l-2 border-granite-900" : ""}`}
+            className={`px-5 py-2.5 font-label text-[0.78rem] font-semibold uppercase tracking-[0.1em] min-h-[44px] transition-colors ${tab === t.id ? "bg-granite-900 text-bone" : "hover:bg-granite-100"} ${i > 0 ? "border-l-2 border-granite-900" : ""}`}
           >
             {t.label}
           </button>
         ))}
       </div>
-      <div className="mt-7">{tab === "copy" ? <CopyTab /> : <AppearanceTab />}</div>
+      <div className="mt-7">
+        {tab === "copy" ? <CopyTab /> : null}
+        {tab === "typed" ? <TypedTab /> : null}
+        {tab === "appearance" ? <AppearanceTab /> : null}
+      </div>
     </div>
   );
 }

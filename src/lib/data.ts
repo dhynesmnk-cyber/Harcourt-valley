@@ -134,6 +134,25 @@ export interface Ballpark {
   note: string;
 }
 
+/* A line that types itself out on the site. Leave `author` blank and it reads
+   as a feature; fill it in and it reads as a review. */
+export const TYPED_PAGES = ["home", "winery", "weddings", "events"] as const;
+export type TypedPage = (typeof TYPED_PAGES)[number];
+
+export const typedPageLabel: Record<TypedPage, string> = {
+  home: "Home page",
+  winery: "Winery",
+  weddings: "Weddings",
+  events: "Events",
+};
+
+export interface TypedLine {
+  id: string;
+  page: TypedPage;
+  text: string;
+  author: string;
+}
+
 export interface SiteConfig {
   heroHeadline: string;
   heroSub: string;
@@ -142,6 +161,7 @@ export interface SiteConfig {
   weddingBallparks: Ballpark[];
   eventBallparks: Ballpark[];
   inclusions: string[];
+  typedLines: TypedLine[];
   palette: "granite" | "orchard";
   displayFont: "fraunces" | "cormorant" | "marcellus";
 }
@@ -413,6 +433,29 @@ export function seedOutbox(): OutboxItem[] {
   ];
 }
 
+export function seedTypedLines(): TypedLine[] {
+  return [
+    { id: "tl-h1", page: "home", text: "Five hundred medals, and they still pour it themselves.", author: "Halliday Wine Companion" },
+    { id: "tl-h2", page: "home", text: "We drove ninety minutes for lunch and stayed until the light went.", author: "Priya R., Melbourne" },
+    { id: "tl-h3", page: "home", text: "Grown, made and bottled within a five-minute walk of the bar.", author: "" },
+    { id: "tl-h4", page: "home", text: "The oldest vineyard in the shire, planted 1874 and still cropping.", author: "" },
+
+    { id: "tl-wi1", page: "winery", text: "The Shiraz tastes like the hill it came off — I mean that as a compliment.", author: "Bendigo Wine Show judge" },
+    { id: "tl-wi2", page: "winery", text: "Tom opened four bottles and talked us through every one. No rush, no script.", author: "Daniel & Mia H." },
+    { id: "tl-wi3", page: "winery", text: "Six bottles or more and the freight is on us.", author: "" },
+    { id: "tl-wi4", page: "winery", text: "Wine from the blocks out front, beer from the orchard, mead from the hives.", author: "" },
+
+    { id: "tl-we1", page: "weddings", text: "One wedding a day. The whole property was ours until midnight.", author: "Jess & Tom O'Neill" },
+    { id: "tl-we2", page: "weddings", text: "It rained. The shed was so good nobody minded, least of all us.", author: "Eliza & Mia" },
+    { id: "tl-we3", page: "weddings", text: "120 seated, 180 standing, 140 ceremony chairs set and packed away.", author: "" },
+    { id: "tl-we4", page: "weddings", text: "A tasting for two before the day, always on us.", author: "" },
+
+    { id: "tl-ev1", page: "events", text: "Forty of us down one long table, five courses, a pour with each.", author: "Marcus C., Fieldwork Coffee" },
+    { id: "tl-ev2", page: "events", text: "They set up, they packed down, and the festoon lights did the rest.", author: "Anna C." },
+    { id: "tl-ev3", page: "events", text: "Power, sound, trestles and lights included — bring the people.", author: "" },
+  ];
+}
+
 export function seedConfig(): SiteConfig {
   return {
     heroHeadline: "Award-winning wine, grown on granite.",
@@ -441,6 +484,7 @@ export function seedConfig(): SiteConfig {
       "Our coordinator on-site from bump-in to last dance",
       "Parking for 60 cars, and taxis know the way",
     ],
+    typedLines: seedTypedLines(),
     palette: "granite",
     displayFont: "fraunces",
   };

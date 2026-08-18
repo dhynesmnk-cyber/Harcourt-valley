@@ -87,7 +87,6 @@ export default function Trade() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
       <SectionHead
-        index="01"
         kicker="Trade & stockists"
         title={<>Straight terms, good margin, better wine.</>}
         lead="We deal direct with the publican and the buyer. No accounts, no portals, no tiered pricing puzzle — send the order, we confirm pricing within two business days."

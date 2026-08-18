@@ -41,7 +41,11 @@ function loadState(): StoreState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as StoreState;
-      if (parsed && parsed.config && parsed.products) return parsed;
+      if (parsed && parsed.config && parsed.products) {
+        // State saved before a config field existed would arrive without it, so
+        // seed defaults fill the gaps rather than reaching the site as undefined.
+        return { ...parsed, config: { ...seedConfig(), ...parsed.config } };
+      }
     }
   } catch {
     /* fall through to seed */

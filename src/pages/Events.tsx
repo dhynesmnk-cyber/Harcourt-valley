@@ -3,10 +3,10 @@ import { IMG, type EventSubtype } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
 import { AnchorLink, ArrowRight, ClockIcon, MailIcon, PinIcon, Reveal, SectionHead } from "../components/ui";
+import { TypedLines } from "../components/TypedLines";
 
 interface EventTypeSection {
   id: EventSubtype;
-  num: string;
   name: string;
   kicker: string;
   copy: string;
@@ -17,7 +17,6 @@ interface EventTypeSection {
 const SECTIONS: EventTypeSection[] = [
   {
     id: "party",
-    num: "01",
     name: "Parties & long lunches",
     kicker: "Birthdays · anniversaries · any excuse",
     copy: "A long table in the garden or the function room, grazing food or something cooked, and our wine poured by the people who made it. You bring the people; the valley does the rest.",
@@ -26,7 +25,6 @@ const SECTIONS: EventTypeSection[] = [
   },
   {
     id: "dinner",
-    num: "02",
     name: "Long-table dinners",
     kicker: "40–80 guests · five courses · matched pours",
     copy: "One table, candles, and a menu built around what's in season and what's in barrel. Readings between courses are welcome — it's been done, it worked.",
@@ -35,7 +33,6 @@ const SECTIONS: EventTypeSection[] = [
   },
   {
     id: "launch",
-    num: "03",
     name: "Launches & brand days",
     kicker: "Products · films · collections",
     copy: "Standing format, power for your setup, festoon lights already rigged, and a backdrop that doesn't need styling. Half-day or full-day, with our wine at trade pricing on the day.",
@@ -44,7 +41,6 @@ const SECTIONS: EventTypeSection[] = [
   },
   {
     id: "retreat",
-    num: "04",
     name: "Retreats & planning days",
     kicker: "Corporate · creative · slow",
     copy: "Morning in the function room, lunch in the garden, a vine walk before the drive home. Whiteboard, projector and decent coffee included; the quiet does the rest.",
@@ -71,7 +67,7 @@ export default function Events() {
         <div className="absolute inset-0 bg-gradient-to-t from-granite-900 via-granite-900/30 to-granite-900/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 text-bone">
-            <p className="kicker text-granite-300">03 — Events</p>
+            <p className="kicker text-granite-300">Events</p>
             <h1 className="font-display font-medium text-4xl sm:text-6xl xl:text-7xl leading-[1.02] mt-4 max-w-3xl">The valley, booked for your thing.</h1>
             <p className="mt-5 max-w-xl text-granite-100 leading-relaxed">Four shapes of event, one property. Flexible on format, fixed on wine quality.</p>
           </div>
@@ -92,6 +88,13 @@ export default function Events() {
         </div>
       </nav>
 
+      {/* What people say, written out a letter at a time */}
+      <section aria-label="What people say" className="border-b-2 border-granite-900 bg-granite-100/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <TypedLines page="events" />
+        </div>
+      </section>
+
       {/* Type sections */}
       {SECTIONS.map((s, idx) => {
         const ballpark = config.eventBallparks[idx];
@@ -104,14 +107,10 @@ export default function Events() {
                 </div>
               </Reveal>
               <Reveal delay={120} className={idx % 2 === 1 ? "lg:order-1" : ""}>
-                <div className="flex items-end gap-5">
-                  <span className="num-ghost text-[3.5rem] sm:text-[5rem] select-none" aria-hidden="true">
-                    {s.num}
-                  </span>
-                  <div>
-                    <p className="kicker text-granite-500">{s.kicker}</p>
-                    <h2 className="font-display text-3xl sm:text-4xl font-medium leading-[1.05] mt-1.5">{s.name}</h2>
-                  </div>
+                <div>
+                  <span className="block w-12 h-[2px] bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
+                  <p className="kicker text-granite-500 mt-4">{s.kicker}</p>
+                  <h2 className="font-display text-3xl sm:text-4xl font-medium leading-[1.05] mt-1.5">{s.name}</h2>
                 </div>
                 <p className="mt-5 text-granite-700 leading-relaxed max-w-lg">{s.copy}</p>
                 {ballpark ? (
@@ -135,7 +134,6 @@ export default function Events() {
       {/* Enquire */}
       <section id="enquire" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
-          index="05"
           kicker="Enquire"
           title={<>Sketch the shape of it.</>}
           lead="Tell us the format and a headcount; we'll sketch the numbers. The event guide arrives as three short emails, never a flood."

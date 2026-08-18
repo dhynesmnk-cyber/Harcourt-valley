@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { IMG, type EventSubtype } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
-import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Stat, Tick } from "../components/ui";
+import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { TypedLines } from "../components/TypedLines";
 
 const ANCHORS = [
   { id: "story", label: "The venue" },
@@ -24,7 +25,7 @@ export default function Weddings() {
         <div className="absolute inset-0 bg-gradient-to-t from-granite-900 via-granite-900/30 to-granite-900/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 text-bone">
-            <p className="kicker text-granite-300">02 — Weddings</p>
+            <p className="kicker text-granite-300">Weddings</p>
             <h1 className="font-display font-medium text-4xl sm:text-6xl xl:text-7xl leading-[1.02] mt-4 max-w-3xl">{config.weddingsHeadline}</h1>
             <p className="mt-5 max-w-xl text-granite-100 leading-relaxed">
               A working vineyard 30 minutes from Bendigo. Ceremony among the rows, dinner with our wine, and granite hills behind every photo.
@@ -60,19 +61,8 @@ export default function Weddings() {
             </p>
             <p className="font-display italic text-xl text-granite-900">"You'll know within ten minutes of standing here. Couples always do."</p>
           </div>
-          <div className="mt-9 grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-granite-300 border-y-2 border-granite-300">
-            <div className="pr-3">
-              <Stat value="120" label="Seated" />
-            </div>
-            <div className="px-3">
-              <Stat value="180" label="Standing" />
-            </div>
-            <div className="px-3">
-              <Stat value="10–12" label="Access, am to midnight" />
-            </div>
-            <div className="pl-3">
-              <Stat value="1/day" label="Weddings, ever" />
-            </div>
+          <div className="mt-9 border-t-2 border-granite-300 pt-7">
+            <TypedLines page="weddings" />
           </div>
         </Reveal>
         <Reveal delay={120}>
@@ -90,7 +80,6 @@ export default function Weddings() {
       {/* Ballparks */}
       <section id="ballparks" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
-          index="02"
           kicker="Ballpark figures"
           title={<>Straight numbers, no pricing games.</>}
           lead="What a day here actually costs. Final quotes move with season, day of week and guest count — these are honest starting points."
@@ -112,7 +101,7 @@ export default function Weddings() {
       {/* Inclusions */}
       <section id="included" className="bg-granite-100/50 border-y-2 border-granite-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-          <SectionHead index="03" kicker="What's included" title={<>The whole property, not a room.</>} />
+          <SectionHead kicker="What's included" title={<>The whole property, not a room.</>} />
           <div className="mt-10 grid sm:grid-cols-2 gap-x-10 gap-y-4 max-w-4xl">
             {config.inclusions.map((item, i) => (
               <Reveal key={item} delay={(i % 2) * 70}>
@@ -131,7 +120,6 @@ export default function Weddings() {
       {/* Enquire */}
       <section id="enquire" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
-          index="04"
           kicker="Enquire"
           title={<>Tell us about the day.</>}
           lead="We reply within one business day. Ask for the info pack and it arrives as three short emails — never a flood."
