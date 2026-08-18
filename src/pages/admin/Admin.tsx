@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fmtDate, fmtDateLong, timeAgo, type Lead } from "../../lib/data";
-import { useApplyAppearance, useStore } from "../../lib/store";
+import { useApplyAppearance, useStore, type BackendStatus } from "../../lib/store";
+import { isRemote } from "../../lib/supabase";
+import { hasAdminSession, signInWithPasscode, signOut as endSession } from "../../lib/auth";
 import { Wordmark } from "../../components/chrome";
 import { ArrowRight, CloseIcon, MailIcon, MenuIcon, SendIcon, TypeChip, Tick } from "../../components/ui";
 import { CompassIcon, Walkthrough, type TourStep } from "../../components/Walkthrough";
@@ -191,8 +193,12 @@ function buildTourSteps(go: (t: Tab) => void): TourStep[] {
     {
       id: "actions",
       title: "The top bar, whenever you need it.",
-      body: "View live site opens the public website in the same window. Reset demo data puts the sample enquiries back if you've been experimenting. And Tour reopens this walkthrough — it's always there.",
-      tip: "Take the tour again whenever something feels unfamiliar. It costs a minute.",
+      body: isRemote
+        ? "View live site opens the public website in the same window, and Tour reopens this walkthrough — it's always there. The badge by the wordmark tells you whether your changes are reaching the database."
+        : "View live site opens the public website in the same window. Reset demo data puts the sample enquiries back if you've been experimenting. And Tour reopens this walkthrough — it's always there.",
+      tip: isRemote
+        ? "If that badge ever says Offline, keep working — your changes are held here and you'll want to check back once the connection returns."
+        : "Take the tour again whenever something feels unfamiliar. It costs a minute.",
       target: "admin-actions",
       before: at("overview"),
     },
@@ -206,43 +212,123 @@ function buildTourSteps(go: (t: Tab) => void): TourStep[] {
   ];
 }
 
-/* ---------------- sign-in gate (demo magic link) ---------------- */
+/* ---------------- backend status ---------------- */
+
+/** Says plainly whether edits are being kept, so nobody types into the void. */
+function BackendBadge({ status }: { status: BackendStatus }) {
+  const look: Record<BackendStatus, { dot: string; label: string; title: string }> = {
+    local: { dot: "bg-granite-500", label: "Demo", title: "No backend connected — changes live in this browser only." },
+    connecting: { dot: "bg-ochre", label: "Connecting", title: "Reaching the database…" },
+    live: { dot: "bg-vine", label: "Saved", title: "Connected — every change is written to the database." },
+    offline: { dot: "bg-garnet", label: "Offline", title: "The database can't be reached. Changes are held in this browser." },
+  };
+  const s = look[status];
+  return (
+    <span
+      className="hidden md:inline-flex items-center gap-2 border-2 border-granite-300 px-2.5 py-1 font-label text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-granite-600"
+      title={s.title}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${status === "connecting" ? "pulse-dot" : ""}`} aria-hidden="true" />
+      {s.label}
+    </span>
+  );
+}
+
+/* ---------------- sign-in gate (passcode) ---------------- */
 
 function SignIn({ onIn }: { onIn: () => void }) {
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const go = () => {
-    if (sent) {
-      onIn();
+  const go = async () => {
+    if (busy || code.trim().length === 0) return;
+    setBusy(true);
+    setError("");
+
+    // Without a backend there's nothing to authenticate against, so the demo
+    // opens on any code — and says so, rather than pretending to check.
+    if (!isRemote) {
+      window.setTimeout(() => {
+        setBusy(false);
+        onIn();
+      }, 400);
       return;
     }
-    setSending(true);
-    window.setTimeout(() => {
-      setSending(false);
-      setSent(true);
-    }, 900);
+
+    const result = await signInWithPasscode(code.trim());
+    setBusy(false);
+    if (result.ok) {
+      onIn();
+    } else {
+      setError(result.message);
+      setCode("");
+    }
   };
 
   return (
     <div className="min-h-svh grid place-items-center bg-bone px-4">
-      <div className="w-full max-w-md border-2 border-granite-900 bg-bone shadow-hard p-8 sm:p-10 rise-in">
+      <form
+        className="w-full max-w-md border-2 border-granite-900 bg-bone shadow-hard p-8 sm:p-10 rise-in"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void go();
+        }}
+      >
         <Wordmark />
         <h1 className="font-display text-3xl font-medium mt-7">The family office.</h1>
-        <p className="text-sm text-granite-700 mt-2 leading-relaxed">Two people, one desk, every enquiry and booking in one place. Sign in with a magic link — no passwords to forget.</p>
+        <p className="text-sm text-granite-700 mt-2 leading-relaxed">
+          Two people, one desk, every enquiry and booking in one place. Type the passcode to let yourself in.
+        </p>
+
+        {/* Both admins share one account, so there's no username to ask for —
+            but password managers and screen readers expect the field to exist
+            alongside a password input. */}
+        <input
+          type="text"
+          name="username"
+          value="Harcourt Valley admin"
+          readOnly
+          hidden
+          autoComplete="username"
+          aria-hidden="true"
+          tabIndex={-1}
+        />
+
         <div className="mt-6">
-          <label className="field-label" htmlFor="adm-email">
-            Your email
+          <label className="field-label" htmlFor="adm-code">
+            Passcode
           </label>
-          <input id="adm-email" type="email" className="field-input" placeholder="you@harcourtvalley.example" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            id="adm-code"
+            type="password"
+            inputMode="numeric"
+            autoComplete="current-password"
+            className="field-input font-label tracking-[0.5em] text-lg"
+            placeholder="••••"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            aria-invalid={error ? "true" : undefined}
+            aria-describedby={error ? "adm-code-err" : undefined}
+            autoFocus
+          />
+          {error ? (
+            <p id="adm-code-err" className="field-error" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
-        <button type="button" className="btn btn-primary w-full mt-5" onClick={go} disabled={sending}>
-          {sent ? "Open the office" : sending ? "Sending link…" : "Send sign-in link"}
+
+        <button type="submit" className="btn btn-primary w-full mt-5" disabled={busy || code.trim().length === 0}>
+          {busy ? "Checking…" : "Open the office"}
         </button>
-        {sent ? <p className="text-sm text-vine font-medium mt-3">Link "arrived" — this is the demo, so just press the button again.</p> : null}
-        <p className="text-xs text-granite-500 mt-5">In production this is Supabase magic-link auth for the two admin users only. No public sign-up.</p>
-      </div>
+
+        <p className="text-xs text-granite-500 mt-5 leading-relaxed">
+          {isRemote
+            ? "The passcode is checked on the server, never in this page, and unlocks a signed session. Without that session the database hands out nothing."
+            : "Demo mode — no backend is configured, so any code opens the office and changes live only in this browser."}
+        </p>
+      </form>
     </div>
   );
 }
@@ -428,17 +514,32 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
 
 export default function Admin() {
   useApplyAppearance();
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("hv-admin") === "1");
+  // With a backend the session is the truth and survives a reload; in demo mode
+  // there's nothing to verify, so sessionStorage stands in as before.
+  const [authed, setAuthed] = useState(() => !isRemote && sessionStorage.getItem("hv-admin") === "1");
+  const [checking, setChecking] = useState(isRemote);
   const [tab, setTab] = useState<Tab>("overview");
   const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(() => localStorage.getItem(TOUR_SEEN_KEY) !== "1");
-  const { resetDemo, toast, leads } = useStore();
+  const { resetDemo, toast, leads, backend } = useStore();
 
   const newCount = useMemo(() => leads.filter((l) => l.status === "new").length, [leads]);
 
   useEffect(() => {
-    if (authed) sessionStorage.setItem("hv-admin", "1");
+    if (!isRemote) {
+      if (authed) sessionStorage.setItem("hv-admin", "1");
+      return;
+    }
+    let live = true;
+    hasAdminSession().then((ok) => {
+      if (!live) return;
+      setAuthed(ok);
+      setChecking(false);
+    });
+    return () => {
+      live = false;
+    };
   }, [authed]);
 
   const openLead = (id: string) => {
@@ -448,6 +549,7 @@ export default function Admin() {
   };
 
   const signOut = useCallback(() => {
+    void endSession();
     setAuthed(false);
     sessionStorage.removeItem("hv-admin");
   }, []);
@@ -469,6 +571,19 @@ export default function Admin() {
     go("overview");
     toast("Tour finished — reopen it any time from \u201cTour\u201d in the top bar.");
   }, [endTour, go, toast]);
+
+  // Restoring a session takes a moment; showing the passcode form in the
+  // meantime would ask people who are already signed in to type it again.
+  if (checking) {
+    return (
+      <div className="min-h-svh grid place-items-center bg-bone px-4">
+        <div className="text-center">
+          <div className="mx-auto w-10 h-10 border-2 border-granite-900 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+          <p className="kicker text-granite-500 mt-5">Opening the office</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authed) return <SignIn onIn={() => setAuthed(true)} />;
 
@@ -513,6 +628,7 @@ export default function Admin() {
               <Wordmark />
             </Link>
             <span className="hidden xl:inline-flex btn btn-sm btn-dark pointer-events-none select-none">Family office</span>
+            <BackendBadge status={backend} />
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0" data-tour="admin-actions">
             <button
@@ -527,16 +643,19 @@ export default function Admin() {
             <Link to="/" className="btn btn-sm btn-ghost hidden md:inline-flex">
               View live site
             </Link>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost hidden lg:inline-flex"
-              onClick={() => {
-                resetDemo();
-                toast("Demo data reset to the seed.");
-              }}
-            >
-              Reset demo data
-            </button>
+            {/* Hidden once real records are involved — reseeding would delete
+                every enquiry, order and word of website copy. */}
+            {!isRemote ? (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost hidden lg:inline-flex"
+                onClick={() => {
+                  toast(resetDemo() ? "Demo data reset to the seed." : "Not while the live database is connected.");
+                }}
+              >
+                Reset demo data
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn btn-sm btn-ghost hidden sm:inline-flex"
