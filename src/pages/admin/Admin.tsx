@@ -297,7 +297,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <li key={t.id} className="px-5 py-2.5">
                   <button type="button" onClick={() => go("trade")} className="w-full text-left hover:bg-granite-50 transition-colors rounded px-[-5px] py-[-2.5px]">
                     <p className="text-sm font-label font-semibold text-granite-700 truncate">{t.business}</p>
-                    <p className="text-xs text-granite-500">{t.items.length} bottles · {timeAgo(t.createdAt)}</p>
+                    <p className="text-xs text-granite-500">{t.lines.reduce((n, l) => n + l.qty, 0)} bottles · {timeAgo(t.createdAt)}</p>
                   </button>
                 </li>
               ))}
