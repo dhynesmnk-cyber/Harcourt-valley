@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { fmtDate, fmtDateLong, timeAgo, type Lead } from "../../lib/data";
 import { useApplyAppearance, useStore } from "../../lib/store";
 import { Wordmark } from "../../components/chrome";
-import { ArrowRight, CloseIcon, MailIcon, MenuIcon, SendIcon, TypeChip } from "../../components/ui";
+import { ArrowRight, CloseIcon, MailIcon, MenuIcon, SendIcon, TypeChip, Tick } from "../../components/ui";
 import { CalendarView, KanbanView } from "./Pipeline";
 import { LeadsView } from "./Leads";
 import { SequencesView } from "./Sequences";
@@ -23,6 +23,59 @@ const TABS: { id: Tab; label: string; group: string }[] = [
   { id: "sequences", label: "Email sequences", group: "Behind the scenes" },
   { id: "cms", label: "Website content", group: "Behind the scenes" },
   { id: "outreach", label: "Outreach (Bee23)", group: "Behind the scenes" },
+];
+
+/* ---------------- walkthrough steps ---------------- */
+
+type WalkthroughStep = {
+  id: string;
+  title: string;
+  text: string;
+  action?: Tab;
+  tip?: string;
+};
+
+const WALKTHROUGH_STEPS: WalkthroughStep[] = [
+  {
+    id: "welcome",
+    title: "Welcome to the family office",
+    text: "This is your desk. Two people run this place — you and one other. Everything you need lives here: enquiries, bookings, trade orders, and the website itself.",
+    tip: "Take your time. There's nothing to break.",
+  },
+  {
+    id: "today",
+    title: "Start with Today",
+    text: "The 'Today' view shows what needs attention right now: new enquiries, upcoming bookings, emails waiting to send, and trade orders to pack. It's your morning coffee view.",
+    action: "overview",
+    tip: "Check this first thing. If all four cards are quiet, you're ahead of the game.",
+  },
+  {
+    id: "pipeline",
+    title: "Move enquiries through",
+    text: "Every enquiry lands here. Drag them from 'New' to 'Contacted' to 'Quote sent' to 'Booked'. Or mark them lost if it didn't work out. The goal is to keep things moving.",
+    action: "pipeline",
+    tip: "Colour means urgency: ochre for weddings, vine green for events, grey for trade.",
+  },
+  {
+    id: "sequences",
+    title: "Let email do the talking",
+    text: "Set up automatic email sequences for each enquiry type. When someone asks about a wedding, they get your wedding info without you typing a word. You can still write personal notes too.",
+    action: "sequences",
+    tip: "Write like a person, not a brochure. 'Thanks for thinking of us' beats 'Thank you for your enquiry'.",
+  },
+  {
+    id: "trade",
+    title: "Trade orders live here",
+    text: "When a bottle shop or restaurant orders wine, it appears in 'Trade orders'. Pack it, mark it dispatched, and the customer gets an email with tracking.",
+    action: "trade",
+    tip: "Keep a box of packing materials near the desk. You'll thank yourself later.",
+  },
+  {
+    id: "done",
+    title: "You're ready",
+    text: "That's the tour. The rest you'll pick up as you go. If something's confusing, tell us — we'll rename it so the next person doesn't stumble.",
+    tip: "Plain English on purpose. If a label confuses you, we want to know.",
+  },
 ];
 
 function Glyph({ tab }: { tab: Tab }) {
@@ -170,63 +223,118 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
         )}
       </div>
 
-      <div className="mt-8 grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        {/* New enquiries */}
-        <button type="button" onClick={() => go("leads")} className="text-left border-2 border-granite-900 bg-bone p-6 hover:shadow-hard transition-shadow">
-          <p className="kicker text-granite-500">New enquiries</p>
-          <p className="font-display text-5xl font-medium mt-2">{newLeads.length}</p>
-          <div className="mt-4 space-y-2">
-            {newLeads.slice(0, 3).map((l) => (
-              <p key={l.id} className="text-sm text-granite-700 truncate">
-                <span className="font-label font-semibold">{l.names}</span> · {timeAgo(l.createdAt)}
-              </p>
-            ))}
-            {newLeads.length === 0 ? <p className="text-sm text-granite-500">Inbox zero. Enjoy it while it lasts.</p> : null}
+      {/* Main focus area - what needs attention */}
+      <div className="mt-8 space-y-4">
+        {/* New enquiries - most important */}
+        <div className="border-2 border-granite-900 bg-bone">
+          <div className="px-6 py-4 border-b-2 border-granite-900 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-ochre" aria-hidden="true" />
+              <p className="kicker text-granite-500">New enquiries need your attention</p>
+            </div>
+            <button type="button" onClick={() => go("leads")} className="text-sm font-label font-semibold text-garnet hover:underline underline-offset-4">
+              View all {newLeads.length} →
+            </button>
           </div>
-        </button>
-
-        {/* Upcoming bookings */}
-        <button type="button" onClick={() => go("calendar")} className="text-left border-2 border-granite-900 bg-bone p-6 hover:shadow-hard transition-shadow">
-          <p className="kicker text-granite-500">Booked · next 30 days</p>
-          <p className="font-display text-5xl font-medium mt-2">{upcoming.length}</p>
-          <div className="mt-4 space-y-2">
-            {upcoming.slice(0, 3).map((l) => (
-              <p key={l.id} className="text-sm text-granite-700 truncate">
-                <span className="font-label font-semibold">{fmtDate(l.bookedDate)}</span> · {l.names}
-              </p>
+          <div className="divide-y divide-granite-200">
+            {newLeads.slice(0, 5).map((l) => (
+              <button key={l.id} type="button" onClick={() => openLead(l.id)} className="w-full text-left px-6 py-3.5 flex flex-wrap items-center gap-x-4 gap-y-1 hover:bg-granite-50 transition-colors">
+                <span className="font-label font-semibold text-sm w-48 truncate">{l.names}</span>
+                <TypeChip type={l.type} subtype={l.subtype} />
+                <span className="text-sm text-granite-500 ml-auto">{timeAgo(l.createdAt)}</span>
+              </button>
             ))}
-            {upcoming.length === 0 ? <p className="text-sm text-granite-500">Nothing on the calendar this month.</p> : null}
-          </div>
-        </button>
-
-        {/* Sequence emails */}
-        <div className="border-2 border-granite-900 bg-bone p-6">
-          <p className="kicker text-granite-500">Sequence emails due</p>
-          <p className="font-display text-5xl font-medium mt-2">{dueEmails.length}</p>
-          <div className="mt-4 space-y-2">
-            {dueEmails.slice(0, 3).map((s) => (
-              <p key={s.id} className="text-sm text-granite-700 truncate">
-                <MailIcon className="w-3.5 h-3.5 inline mr-1.5 text-ochre" />
-                {s.leadName} · {s.stepLabel}
-              </p>
-            ))}
-            {dueEmails.length === 0 ? <p className="text-sm text-granite-500">All caught up.</p> : null}
+            {newLeads.length === 0 ? (
+              <div className="px-6 py-8 text-center">
+                <Tick className="w-6 h-6 text-vine mx-auto mb-2" />
+                <p className="text-sm text-granite-600">Inbox zero. Take a walk through the vines.</p>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {/* Trade */}
-        <button type="button" onClick={() => go("trade")} className="text-left border-2 border-granite-900 bg-bone p-6 hover:shadow-hard transition-shadow">
-          <p className="kicker text-granite-500">Trade orders to pack</p>
-          <p className="font-display text-5xl font-medium mt-2">{tradeNew.length}</p>
-          <div className="mt-4 space-y-2">
-            {tradeNew.slice(0, 3).map((t) => (
-              <p key={t.id} className="text-sm text-granite-700 truncate">
-                <span className="font-label font-semibold">{t.business}</span> · {timeAgo(t.createdAt)}
-              </p>
-            ))}
-            {tradeNew.length === 0 ? <p className="text-sm text-granite-500">No trade orders waiting.</p> : null}
+        {/* Two column layout for secondary info */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Upcoming bookings */}
+          <div className="border-2 border-granite-900 bg-bone">
+            <div className="px-5 py-3.5 border-b-2 border-granite-900 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-vine" aria-hidden="true" />
+                <p className="kicker text-granite-500 text-[0.7rem]">Coming up · next 30 days</p>
+              </div>
+              <button type="button" onClick={() => go("calendar")} className="text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+                Calendar →
+              </button>
+            </div>
+            <ul className="divide-y divide-granite-200 max-h-56 overflow-y-auto thin-scroll">
+              {upcoming.slice(0, 4).map((l) => (
+                <li key={l.id}>
+                  <button type="button" onClick={() => openLead(l.id)} className="w-full text-left px-5 py-2.5 flex items-center gap-3 hover:bg-granite-50 transition-colors">
+                    <span className="text-xs font-label font-semibold text-granite-700 w-16 shrink-0">{fmtDate(l.bookedDate)}</span>
+                    <span className="text-sm text-granite-700 truncate">{l.names}</span>
+                  </button>
+                </li>
+              ))}
+              {upcoming.length === 0 ? (
+                <li className="px-5 py-4 text-center text-sm text-granite-500">No bookings this month</li>
+              ) : null}
+            </ul>
           </div>
-        </button>
+
+          {/* Trade orders */}
+          <div className="border-2 border-granite-900 bg-bone">
+            <div className="px-5 py-3.5 border-b-2 border-granite-900 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-granite-500" aria-hidden="true" />
+                <p className="kicker text-granite-500 text-[0.7rem]">Trade orders to pack</p>
+              </div>
+              <button type="button" onClick={() => go("trade")} className="text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+                Trade inbox →
+              </button>
+            </div>
+            <ul className="divide-y divide-granite-200 max-h-56 overflow-y-auto thin-scroll">
+              {tradeNew.slice(0, 4).map((t) => (
+                <li key={t.id} className="px-5 py-2.5">
+                  <button type="button" onClick={() => go("trade")} className="w-full text-left hover:bg-granite-50 transition-colors rounded px-[-5px] py-[-2.5px]">
+                    <p className="text-sm font-label font-semibold text-granite-700 truncate">{t.business}</p>
+                    <p className="text-xs text-granite-500">{t.items.length} bottles · {timeAgo(t.createdAt)}</p>
+                  </button>
+                </li>
+              ))}
+              {tradeNew.length === 0 ? (
+                <li className="px-5 py-4 text-center text-sm text-granite-500">No orders waiting</li>
+              ) : null}
+            </ul>
+          </div>
+        </div>
+
+        {/* Sequence emails - full width when due */}
+        {dueEmails.length > 0 ? (
+          <div className="border-2 border-granite-900 bg-bone">
+            <div className="px-5 py-3.5 border-b-2 border-granite-900 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <MailIcon className="w-4 h-4 text-ochre" />
+                <p className="kicker text-granite-500 text-[0.7rem]">Emails ready to send</p>
+              </div>
+              <button type="button" onClick={sendNow} className="btn btn-sm btn-primary">
+                <SendIcon className="w-3.5 h-3.5" /> Send all {dueEmails.length}
+              </button>
+            </div>
+            <ul className="divide-y divide-granite-200 max-h-48 overflow-y-auto thin-scroll">
+              {dueEmails.slice(0, 5).map((s) => (
+                <li key={s.id} className="px-5 py-2.5 flex items-center gap-3">
+                  <span className="text-sm text-granite-700 truncate">{s.leadName}</span>
+                  <span className="text-xs text-granite-500">·</span>
+                  <span className="text-xs text-granite-600">{s.stepLabel}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-granite-300 bg-bone/50 rounded-none px-5 py-4 text-center">
+            <p className="text-sm text-granite-600">All caught up on sequence emails. Well done.</p>
+          </div>
+        )}
       </div>
 
       {/* Recent activity strip */}
@@ -254,6 +362,93 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
   );
 }
 
+/* ---------------- walkthrough modal ---------------- */
+
+function WalkthroughModal({ onClose, go }: { onClose: () => void; go: (t: Tab) => void }) {
+  const [step, setStep] = useState(0);
+  const current = WALKTHROUGH_STEPS[step];
+  const isLast = step === WALKTHROUGH_STEPS.length - 1;
+  const isFirst = step === 0;
+
+  const next = () => {
+    if (current.action && current.action !== "overview") {
+      go(current.action);
+    }
+    if (isLast) {
+      onClose();
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  const prev = () => {
+    if (!isFirst) setStep(step - 1);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+      <button type="button" className="absolute inset-0 bg-granite-900/60 backdrop-sm" onClick={onClose} aria-label="Close walkthrough" />
+      <div className="relative w-full max-w-lg border-2 border-granite-900 bg-bone shadow-hard rise-in">
+        {/* Progress bar */}
+        <div className="h-1.5 bg-granite-100 border-b-2 border-granite-900">
+          <div
+            className="h-full bg-garnet transition-all duration-300"
+            style={{ width: `${((step + 1) / WALKTHROUGH_STEPS.length) * 100}%` }}
+            aria-hidden="true"
+          />
+        </div>
+
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-granite-900 text-bone grid place-items-center shrink-0">
+              <span className="font-display text-lg">{step + 1}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-display text-2xl font-medium text-granite-900">{current.title}</h2>
+              <p className="mt-3 text-granite-700 leading-relaxed">{current.text}</p>
+              {current.tip ? (
+                <div className="mt-4 pl-4 border-l-2 border-ochre">
+                  <p className="text-sm text-granite-600">
+                    <span className="font-semibold text-granite-800">Tip:</span> {current.tip}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-8 flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={prev}
+              disabled={isFirst}
+              className={`btn btn-sm ${isFirst ? "btn-ghost text-granite-400 pointer-events-none" : "btn-ghost text-granite-700"}`}
+            >
+              Back
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-granite-500">
+                {step + 1} of {WALKTHROUGH_STEPS.length}
+              </span>
+              <button type="button" onClick={next} className="btn btn-sm btn-primary">
+                {isLast ? "Get started" : "Next"} <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full hover:bg-granite-100 transition-colors"
+          aria-label="Skip walkthrough"
+        >
+          <CloseIcon className="w-4 h-4 text-granite-500" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- shell ---------------- */
 
 export default function Admin() {
@@ -262,6 +457,10 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>("overview");
   const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(() => {
+    const seen = localStorage.getItem("hv-walkthrough-seen");
+    return !seen;
+  });
   const { resetDemo, toast, leads } = useStore();
 
   const newCount = useMemo(() => leads.filter((l) => l.status === "new").length, [leads]);
@@ -269,6 +468,11 @@ export default function Admin() {
   useEffect(() => {
     if (authed) sessionStorage.setItem("hv-admin", "1");
   }, [authed]);
+
+  const completeWalkthrough = () => {
+    localStorage.setItem("hv-walkthrough-seen", "1");
+    setShowWalkthrough(false);
+  };
 
   const openLead = (id: string) => {
     setFocusLeadId(id);
@@ -381,6 +585,8 @@ export default function Admin() {
           {tab === "outreach" ? <OutreachView /> : null}
         </main>
       </div>
+
+      {showWalkthrough ? <WalkthroughModal onClose={completeWalkthrough} go={go} /> : null}
     </div>
   );
 }
