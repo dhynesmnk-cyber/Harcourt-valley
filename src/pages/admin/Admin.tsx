@@ -378,7 +378,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
               <span className="w-2.5 h-2.5 rounded-full bg-ochre pulse-dot text-ochre" aria-hidden="true" />
               <p className="kicker text-granite-500">New enquiries need your attention</p>
             </div>
-            <button type="button" onClick={() => go("leads")} className="text-sm font-label font-semibold text-garnet hover:underline underline-offset-4">
+            <button type="button" onClick={() => go("leads")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-sm font-label font-semibold text-garnet hover:underline underline-offset-4">
               View all {newLeads.length} →
             </button>
           </div>
@@ -408,7 +408,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <span className="w-2 h-2 rounded-full bg-vine" aria-hidden="true" />
                 <p className="kicker text-granite-500 text-[0.7rem]">Coming up · next 30 days</p>
               </div>
-              <button type="button" onClick={() => go("calendar")} className="text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+              <button type="button" onClick={() => go("calendar")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
                 Calendar →
               </button>
             </div>
@@ -434,7 +434,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <span className="w-2 h-2 rounded-full bg-granite-500" aria-hidden="true" />
                 <p className="kicker text-granite-500 text-[0.7rem]">Trade orders to pack</p>
               </div>
-              <button type="button" onClick={() => go("trade")} className="text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+              <button type="button" onClick={() => go("trade")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
                 Trade inbox →
               </button>
             </div>
@@ -489,7 +489,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
       <div className="mt-8 border-2 border-granite-900 bg-granite-100/40 lux-lift">
         <div className="px-6 py-4 border-b-2 border-granite-900 flex items-center justify-between">
           <p className="kicker text-granite-500">Latest enquiries</p>
-          <button type="button" className="kicker text-garnet hover:underline underline-offset-4" onClick={() => go("leads")}>
+          <button type="button" className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 kicker text-garnet hover:underline underline-offset-4" onClick={() => go("leads")}>
             See all
           </button>
         </div>

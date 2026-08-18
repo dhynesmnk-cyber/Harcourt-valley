@@ -805,7 +805,22 @@ body::before {
   animation-delay: 0.06s;
 }
 
+/* Hit area, not paint: 24px square so the dot inside is reachable. */
+.tour-hit {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
 .tour-dot {
+  display: block;
+  pointer-events: none;
   width: 6px;
   height: 6px;
   border-radius: 999px;

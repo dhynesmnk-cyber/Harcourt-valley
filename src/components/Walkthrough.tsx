@@ -261,7 +261,9 @@ export function Walkthrough({
         </div>
 
         <div className="px-5 sm:px-6 pb-5 pt-1 shrink-0">
-          <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Walkthrough steps">
+          {/* The dot is 6px of paint inside a 24px button — small enough to read
+              as a progress indicator, big enough to actually hit. */}
+          <div className="flex flex-wrap items-center -mx-1" role="tablist" aria-label="Walkthrough steps">
             {steps.map((s, n) => (
               <button
                 key={s.id}
@@ -270,9 +272,10 @@ export function Walkthrough({
                 aria-selected={n === i}
                 aria-label={`Step ${n + 1}: ${s.title}`}
                 onClick={() => setI(n)}
-                className="tour-dot"
-                data-state={n === i ? "current" : n < i ? "done" : "todo"}
-              />
+                className="tour-hit"
+              >
+                <span className="tour-dot" data-state={n === i ? "current" : n < i ? "done" : "todo"} />
+              </button>
             ))}
           </div>
           <div className="mt-4 flex items-center justify-end gap-2">

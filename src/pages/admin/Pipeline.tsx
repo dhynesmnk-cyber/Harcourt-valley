@@ -211,7 +211,7 @@ export function CalendarView({ openLead }: { openLead: (id: string) => void }) {
                         key={l.id}
                         type="button"
                         onClick={() => openLead(l.id)}
-                        className="w-full text-left text-[0.68rem] font-label font-semibold leading-tight px-1.5 py-1 border border-granite-900 truncate hover:-translate-y-px transition-transform"
+                        className="w-full text-left text-[0.68rem] font-label font-semibold leading-tight px-1.5 py-1 min-h-[26px] border border-granite-900 truncate hover:-translate-y-px transition-transform"
                         style={{
                           background: `color-mix(in srgb, ${l.type === "wedding" ? "var(--acc-ochre)" : "var(--acc-vine)"} 30%, var(--color-bone))`,
                         }}
