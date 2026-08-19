@@ -30,7 +30,7 @@ export interface Lead {
   message: string;
   status: LeadStatus;
   bookedDate: string | null;
-  source: "website" | "bee23";
+  source: "website" | "beesearch";
   infoPack: boolean;
   wantsVisit: boolean;
   createdAt: string;
@@ -134,20 +134,59 @@ export interface EmailSend {
   status: "scheduled" | "sent";
 }
 
-export interface Bee23Profile {
+/** What kind of business a BeeSearch target profile looks for — decides which directory it's matched against. */
+export type ProspectKind = "stockist" | "planner";
+
+export interface BeeSearchProfile {
   id: string;
   name: string;
   who: string;
+  kind: ProspectKind;
   criteria: string[];
+}
+
+/**
+ * A business BeeSearch can suggest. This is a small, honest, hand-maintained
+ * directory — there is no web crawl behind it. Matching is a plain filter and
+ * a list of reasons, not a black-box score, so every suggestion can show its
+ * working.
+ */
+export interface Prospect {
+  business: string;
+  contact: string;
+  email: string;
+  phone: string;
+  town: string;
+  kind: ProspectKind;
+  distanceMins: number;
+  /** Planners only — the guest-count band they typically book. */
+  guestRange?: [number, number];
+  /** Short, factual reasons this business fits its kind — shown verbatim on the match card. */
+  tags: string[];
+}
+
+/** One suggestion with the specific, real reasons it matched — the transparency behind every card. */
+export interface ProspectMatch {
+  prospect: Prospect;
+  reasons: string[];
 }
 
 export interface OutboxItem {
   id: string;
   business: string;
   contact: string;
+  email: string;
+  phone: string;
+  town: string;
+  kind: ProspectKind;
   subject: string;
   body: string;
-  state: "draft" | "approved" | "sent";
+  /** The reasons BeeSearch suggested this business — carried through so the outbox stays explainable, not just the match screen. */
+  matchedOn: string[];
+  state: "draft" | "approved" | "sent" | "replied" | "declined" | "converted";
+  sentAt: string | null;
+  /** Set once "Convert to enquiry" has moved this reply into the pipeline. */
+  convertedLeadId: string | null;
   updatedAt: string;
 }
 
@@ -374,7 +413,7 @@ export function seedLeads(): Lead[] {
     },
     {
       id: "l8", type: "event", subtype: "retreat", names: "Fern & Ivy Leadership", email: "hello@fernivy.example.com", phone: "0400 218 340",
-      preferredDate: null, guestCount: 24, status: "archived", bookedDate: null, source: "bee23",
+      preferredDate: null, guestCount: 24, status: "archived", bookedDate: null, source: "beesearch",
       infoPack: false, wantsVisit: false, createdAt: iso(-210),
       message: "Chose a coastal venue for this year. Worth re-approaching for spring planning days.",
     },
@@ -464,26 +503,120 @@ export function seedOrders(): Order[] {
   ];
 }
 
-export function seedProfiles(): Bee23Profile[] {
+export function seedProfiles(): BeeSearchProfile[] {
   return [
     {
-      id: "bp1", name: "Regional stockists", who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
+      id: "bp1", name: "Regional stockists", kind: "stockist",
+      who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
       criteria: ["Independent bottle shops & wine bars", "Regional VIC & the Murray", "Already stock premium Central Victorian reds"],
     },
     {
-      id: "bp2", name: "Wedding & event planners", who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
+      id: "bp2", name: "Wedding & event planners", kind: "planner",
+      who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
       criteria: ["Planners within 90 min of Harcourt", "Couples & corporates of 60–140 guests", "Stylists who book vineyard venues already"],
     },
   ];
 }
 
+/**
+ * The directory BeeSearch matches against. Hand-maintained, not crawled — see
+ * `matchProspects` for how a suggestion and its reasons are worked out.
+ */
+export function seedProspects(): Prospect[] {
+  return [
+    {
+      business: "Rangeview Cellars", contact: "Owen Blake", email: "owen@rangeviewcellars.example.com", phone: "03 5422 3310",
+      town: "Kyneton", kind: "stockist", distanceMins: 35,
+      tags: ["Independent bottle shop", "Already stocks premium Central Victorian reds"],
+    },
+    {
+      business: "The Post Office Bar", contact: "Priya Nathan", email: "priya@postofficebar.example.com", phone: "03 5348 1122",
+      town: "Daylesford", kind: "stockist", distanceMins: 55,
+      tags: ["Wine bar with a regional-only list", "By-the-glass pours, margin-friendly price point"],
+    },
+    {
+      business: "Maldon Bottle Shop", contact: "Geoff Turner", email: "geoff@maldonbottleshop.example.com", phone: "03 5475 2201",
+      town: "Maldon", kind: "stockist", distanceMins: 20,
+      tags: ["Independent bottle shop", "Regional VIC specialist"],
+    },
+    {
+      business: "The Copper Still", contact: "Nadia Ferreyra", email: "nadia@copperstill.example.com", phone: "03 5470 5588",
+      town: "Castlemaine", kind: "stockist", distanceMins: 25,
+      tags: ["Wine bar with a regional-only list", "Already stocks premium Central Victorian reds"],
+    },
+    {
+      business: "Goldfields Cellar Door Co.", contact: "Renata Kovic", email: "renata@goldfieldscellar.example.com", phone: "03 5443 9021",
+      town: "Bendigo", kind: "stockist", distanceMins: 30,
+      tags: ["Independent bottle shop", "By-the-glass pours, margin-friendly price point"],
+    },
+    {
+      business: "Aisle & Oak Planning", contact: "Grace Ferrante", email: "grace@aisleandoak.example.com", phone: "03 5443 7710",
+      town: "Bendigo", kind: "planner", distanceMins: 30, guestRange: [70, 130],
+      tags: ["Books vineyard venues already", "Coordinates ceremony + reception in one booking"],
+    },
+    {
+      business: "Gather Events Co.", contact: "Mitch Osei", email: "mitch@gatherevents.example.com", phone: "03 5331 4460",
+      town: "Ballarat", kind: "planner", distanceMins: 75, guestRange: [50, 100],
+      tags: ["Corporate day retreats & offsites", "Regularly quotes regional venues"],
+    },
+    {
+      business: "Northstar Retreats", contact: "Eve Callahan", email: "eve@northstarretreats.example.com", phone: "03 9021 6634",
+      town: "Melbourne", kind: "planner", distanceMins: 85, guestRange: [40, 90],
+      tags: ["Corporate day retreats & offsites", "Books within 90 minutes of Melbourne"],
+    },
+    {
+      business: "Willowbrook Weddings", contact: "Sam Delaney", email: "sam@willowbrookweddings.example.com", phone: "03 5443 2287",
+      town: "Bendigo", kind: "planner", distanceMins: 30, guestRange: [90, 150],
+      tags: ["Books vineyard venues already", "Full-service wedding planning"],
+    },
+    {
+      business: "The Long Table Collective", contact: "Priya Anand", email: "priya@longtablecollective.example.com", phone: "03 5348 9902",
+      town: "Daylesford", kind: "planner", distanceMins: 55, guestRange: [40, 80],
+      tags: ["Coordinates ceremony + reception in one booking", "Stylist for regional venues"],
+    },
+  ];
+}
+
+/**
+ * Works out which prospects fit a target profile, and *why* — the reasons are
+ * plain facts about the prospect (distance, guest range, tags), plus, for
+ * planner profiles, a comparison against the guest counts of your own booked
+ * leads. Nothing here is invented or scored by a hidden model: every reason
+ * traces back to a field you can see in the directory or your own pipeline.
+ */
+export function matchProspects(profile: BeeSearchProfile, prospects: Prospect[], bookedLeads: Lead[]): ProspectMatch[] {
+  const pool = prospects.filter((p) => p.kind === profile.kind);
+  const guestCounts = bookedLeads.map((l) => l.guestCount ?? 0).filter((g) => g > 0);
+  const lo = guestCounts.length ? Math.min(...guestCounts) : 60;
+  const hi = guestCounts.length ? Math.max(...guestCounts) : 120;
+
+  return pool
+    .map((prospect) => {
+      const reasons: string[] = [];
+      if (prospect.distanceMins <= 90) reasons.push(`${prospect.distanceMins} minutes from the valley — within the 90-minute radius`);
+      if (profile.kind === "planner" && prospect.guestRange) {
+        const overlaps = prospect.guestRange[0] <= hi && prospect.guestRange[1] >= lo;
+        if (overlaps) {
+          reasons.push(
+            `Books events of ${prospect.guestRange[0]}–${prospect.guestRange[1]} guests — overlaps your booked range of ${lo}–${hi}`,
+          );
+        }
+      }
+      reasons.push(...prospect.tags);
+      return { prospect, reasons };
+    })
+    .sort((a, b) => b.reasons.length - a.reasons.length);
+}
+
 export function seedOutbox(): OutboxItem[] {
   return [
     {
-      id: "ob1", business: "The Copper Still, Castlemaine", contact: "Nadia Ferreyra",
+      id: "ob1", business: "The Copper Still", contact: "Nadia Ferreyra",
+      email: "nadia@copperstill.example.com", phone: "03 5470 5588", town: "Castlemaine", kind: "stockist",
       subject: "A Shiraz your regulars keep asking about",
       body: "Hi Nadia — we're Harcourt Valley Vineyards, Bendigo's most-awarded winery (500+ medals, if the cabinet's to be believed).\n\nOur Granite Face Shiraz is pouring well at a few bars your size around the region, and it's margin-friendly at your by-the-glass price point. I'm through Castlemaine next Thursday — happy to drop a sample by.\n\nWorth ten minutes?\n\n— Tom",
-      state: "sent", updatedAt: iso(-6, 10),
+      matchedOn: ["25 minutes from the valley — within the 90-minute radius", "Wine bar with a regional-only list", "Already stocks premium Central Victorian reds"],
+      state: "sent", sentAt: iso(-6, 10), convertedLeadId: null, updatedAt: iso(-6, 10),
     },
   ];
 }

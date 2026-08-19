@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bee23Profile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
+  BeeSearchProfile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
   ProductImage, Sequence, SequenceStep, SiteConfig, TradeOrder,
   IMG, referencedImageIds,
   DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
@@ -18,7 +18,7 @@ interface StoreState {
   tradeOrders: TradeOrder[];
   sequences: Sequence[];
   sends: EmailSend[];
-  profiles: Bee23Profile[];
+  profiles: BeeSearchProfile[];
   outbox: OutboxItem[];
   posts: BlogPost[];
   config: SiteConfig;
@@ -107,9 +107,11 @@ interface StoreValue extends StoreState {
   resetDemo: () => boolean;
   sendDueEmails: () => number;
   dueEmails: EmailSend[];
-  addProfile: (p: Omit<Bee23Profile, "id">) => void;
-  addOutbox: (items: Omit<OutboxItem, "id" | "updatedAt" | "state">[]) => void;
+  addProfile: (p: Omit<BeeSearchProfile, "id">) => void;
+  addOutbox: (items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => void;
   setOutboxState: (id: string, state: OutboxItem["state"]) => void;
+  /** Turns a "replied" outreach contact into a real pipeline lead, and marks the outbox item converted. Returns null if the item is gone. */
+  convertOutboxToLead: (id: string) => Lead | null;
 }
 
 const Ctx = createContext<StoreValue | null>(null);
@@ -570,21 +572,67 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
-  /* ---------- outreach ---------- */
+  /* ---------- BeeSearch (outreach) ---------- */
 
-  const addProfile = useCallback((p: Omit<Bee23Profile, "id">) => {
+  const addProfile = useCallback((p: Omit<BeeSearchProfile, "id">) => {
     setState((s) => ({ ...s, profiles: [...s.profiles, { ...p, id: uid() }] }));
   }, []);
 
-  const addOutbox = useCallback((items: Omit<OutboxItem, "id" | "updatedAt" | "state">[]) => {
+  const addOutbox = useCallback((items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => {
     setState((s) => ({
       ...s,
-      outbox: [...items.map((i) => ({ ...i, id: uid(), state: "draft" as const, updatedAt: new Date().toISOString() })), ...s.outbox],
+      outbox: [
+        ...items.map((i) => ({
+          ...i,
+          id: uid(),
+          state: "draft" as const,
+          sentAt: null,
+          convertedLeadId: null,
+          updatedAt: new Date().toISOString(),
+        })),
+        ...s.outbox,
+      ],
     }));
   }, []);
 
   const setOutboxState = useCallback((id: string, st: OutboxItem["state"]) => {
-    setState((s) => ({ ...s, outbox: s.outbox.map((o) => (o.id === id ? { ...o, state: st, updatedAt: new Date().toISOString() } : o)) }));
+    setState((s) => ({
+      ...s,
+      outbox: s.outbox.map((o) =>
+        o.id === id
+          ? { ...o, state: st, sentAt: st === "sent" ? new Date().toISOString() : o.sentAt, updatedAt: new Date().toISOString() }
+          : o,
+      ),
+    }));
+  }, []);
+
+  const convertOutboxToLead = useCallback((id: string): Lead | null => {
+    const item = stateRef.current.outbox.find((o) => o.id === id);
+    if (!item) return null;
+    const lead: Lead = {
+      id: uid(),
+      type: item.kind === "stockist" ? "trade" : "event",
+      names: item.business,
+      email: item.email,
+      phone: item.phone,
+      preferredDate: null,
+      guestCount: null,
+      message: `Replied to BeeSearch outreach (${item.town}). Contact: ${item.contact}.\n\n${item.subject}\n\n${item.body}`,
+      status: "new",
+      bookedDate: null,
+      source: "beesearch",
+      infoPack: false,
+      wantsVisit: false,
+      createdAt: new Date().toISOString(),
+    };
+    setState((s) => ({
+      ...s,
+      leads: [lead, ...s.leads],
+      outbox: s.outbox.map((o) =>
+        o.id === id ? { ...o, state: "converted" as const, convertedLeadId: lead.id, updatedAt: new Date().toISOString() } : o,
+      ),
+    }));
+    return lead;
   }, []);
 
   const value: StoreValue = {
@@ -626,6 +674,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addProfile,
     addOutbox,
     setOutboxState,
+    convertOutboxToLead,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

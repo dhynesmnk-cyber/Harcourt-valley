@@ -14,9 +14,9 @@ import { SequencesView } from "./Sequences";
 import { CmsView } from "./Cms";
 import { JournalView } from "./Journal";
 import { ShopManagerView, TradeInboxView } from "./Ops";
-import { OutreachView } from "./Outreach";
+import { BeeSearchView } from "./BeeSearch";
 
-export type Tab = "overview" | "pipeline" | "calendar" | "leads" | "sequences" | "cms" | "journal" | "trade" | "shop" | "outreach";
+export type Tab = "overview" | "pipeline" | "calendar" | "leads" | "sequences" | "cms" | "journal" | "trade" | "shop" | "beesearch";
 
 const TABS: { id: Tab; label: string; group: string }[] = [
   { id: "overview", label: "Today", group: "Day to day" },
@@ -28,7 +28,7 @@ const TABS: { id: Tab; label: string; group: string }[] = [
   { id: "sequences", label: "Email sequences", group: "Behind the scenes" },
   { id: "cms", label: "Website content", group: "Behind the scenes" },
   { id: "journal", label: "The journal", group: "Behind the scenes" },
-  { id: "outreach", label: "Outreach (Bee23)", group: "Behind the scenes" },
+  { id: "beesearch", label: "BeeSearch", group: "Behind the scenes" },
 ];
 
 function Glyph({ tab }: { tab: Tab }) {
@@ -97,7 +97,7 @@ function Glyph({ tab }: { tab: Tab }) {
           <path d="M14 4.5V9h5M8.5 13h7M8.5 16.5h4.5" {...s} />
         </svg>
       );
-    case "outreach":
+    case "beesearch":
       return (
         <svg viewBox="0 0 24 24" className={p} aria-hidden="true">
           <path d="M20 4 10 14M20 4l-6.5 16-3.5-6L4 10.5 20 4Z" {...s} />
@@ -201,12 +201,12 @@ function buildTourSteps(go: (t: Tab) => void): TourStep[] {
       before: at("journal"),
     },
     {
-      id: "outreach",
+      id: "beesearch",
       title: "Going out and finding work.",
-      body: "Bee23 works the other direction: it finds venues and stockists that look like your best customers, and the outbox holds the notes you're sending them.",
+      body: "BeeSearch works the other direction: it finds venues and stockists that look like your best customers, shows you exactly why each one matched, and the outbox holds the notes you're sending them. A reply that goes well converts straight into an enquiry in your pipeline.",
       tip: "Two considered emails a week beats fifty sent in one afternoon.",
       placement: "dock",
-      before: at("outreach"),
+      before: at("beesearch"),
     },
     {
       id: "actions",
@@ -354,7 +354,7 @@ function SignIn({ onIn }: { onIn: () => void }) {
 /* ---------------- overview ---------------- */
 
 function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: string) => void }) {
-  const { leads, dueEmails, sendDueEmails, toast, tradeOrders } = useStore();
+  const { leads, dueEmails, sendDueEmails, toast, tradeOrders, outbox } = useStore();
 
   const newLeads = leads.filter((l) => l.status === "new");
   const today = new Date();
@@ -363,6 +363,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
     .filter((l) => l.status === "booked" && l.bookedDate && new Date(l.bookedDate + "T12:00:00") >= today && new Date(l.bookedDate + "T12:00:00") <= in30)
     .sort((a, b) => (a.bookedDate! < b.bookedDate! ? -1 : 1));
   const tradeNew = tradeOrders.filter((t) => t.status === "new");
+  const beeWaiting = outbox.filter((o) => o.state === "approved" || o.state === "replied");
 
   const sendNow = () => {
     const n = sendDueEmails();
@@ -417,8 +418,8 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
           </div>
         </div>
 
-        {/* Two column layout for secondary info */}
-        <div className="grid md:grid-cols-2 gap-4 stagger">
+        {/* Two/three column layout for secondary info */}
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">
           {/* Upcoming bookings */}
           <div className="border-2 border-granite-900 bg-bone lux-lift">
             <div className="px-5 py-3.5 border-b-2 border-granite-900 flex items-center justify-between">
@@ -469,6 +470,32 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
               ))}
               {tradeNew.length === 0 ? (
                 <li className="px-5 py-4 text-center text-sm text-granite-500">No orders waiting</li>
+              ) : null}
+            </ul>
+          </div>
+
+          {/* BeeSearch outreach waiting on you */}
+          <div className="border-2 border-granite-900 bg-bone lux-lift">
+            <div className="px-5 py-3.5 border-b-2 border-granite-900 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-ochre" aria-hidden="true" />
+                <p className="kicker text-granite-500 text-[0.7rem]">BeeSearch waiting on you</p>
+              </div>
+              <button type="button" onClick={() => go("beesearch")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+                BeeSearch →
+              </button>
+            </div>
+            <ul className="divide-y divide-granite-200 max-h-56 overflow-y-auto thin-scroll">
+              {beeWaiting.slice(0, 4).map((o) => (
+                <li key={o.id}>
+                  <button type="button" onClick={() => go("beesearch")} className="w-full text-left px-5 py-2.5 hover:bg-granite-50 transition-colors">
+                    <p className="text-sm font-label font-semibold text-granite-700 truncate">{o.business}</p>
+                    <p className="text-xs text-granite-500">{o.state === "approved" ? "Approved — ready to send" : "Replied — ready to convert"}</p>
+                  </button>
+                </li>
+              ))}
+              {beeWaiting.length === 0 ? (
+                <li className="px-5 py-4 text-center text-sm text-granite-500">Nothing waiting</li>
               ) : null}
             </ul>
           </div>
@@ -730,7 +757,7 @@ export default function Admin() {
           {tab === "journal" ? <JournalView /> : null}
           {tab === "trade" ? <TradeInboxView /> : null}
           {tab === "shop" ? <ShopManagerView /> : null}
-          {tab === "outreach" ? <OutreachView /> : null}
+          {tab === "beesearch" ? <BeeSearchView go={go} openLead={openLead} /> : null}
         </main>
       </div>
 
