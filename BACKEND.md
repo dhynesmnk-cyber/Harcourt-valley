@@ -109,3 +109,9 @@ Worth knowing before you rely on it:
   or a rate limit on the insert policy.
 - **Deleting is real.** There's no soft-delete or undo behind the admin screens.
   Supabase's own daily backups are the safety net; make sure they're on.
+
+## BeeSearch (outreach)
+
+This backend is what BeeSearch's live business search needs underneath it —
+but it's a separate, optional setup step on top. See
+[BEESEARCH.md](./BEESEARCH.md).
