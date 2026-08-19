@@ -166,7 +166,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // whatever is already local rather than wiping it.
         setState((s) => {
           const merged: StoreState = {
-            products: remote.products.length ? remote.products : s.products,
+            // Photos have no table yet (see toProduct in remote.ts), so a
+            // remote row never carries them — overlay each product's local
+            // images back on by id, or hydrating would silently wipe out
+            // whatever had been uploaded in this browser.
+            products: remote.products.length
+              ? remote.products.map((rp) => {
+                  const local = s.products.find((lp) => lp.id === rp.id);
+                  return local && local.images.length ? { ...rp, images: local.images } : rp;
+                })
+              : s.products,
             leads: remote.leads.length ? remote.leads : s.leads,
             notes: remote.notes.length ? remote.notes : s.notes,
             orders: remote.orders.length ? remote.orders : s.orders,

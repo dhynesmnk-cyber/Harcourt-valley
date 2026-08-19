@@ -38,6 +38,10 @@ const toProduct = (r: any): Product => ({
   id: r.id, name: r.name, type: r.type, varietal: r.varietal ?? "", vintage: r.vintage,
   priceCents: r.price_cents, stripePriceId: r.stripe_price_id ?? "", stock: r.stock,
   description: r.description ?? "", featured: !!r.featured, active: !!r.active,
+  // No images column yet — photos are browser-local (IndexedDB), so a row
+  // from the backend never carries them. The store overlays local images
+  // back onto these on hydrate; see the comment there.
+  images: [],
 });
 
 const leadRow = (l: Lead) => ({
