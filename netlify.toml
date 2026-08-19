@@ -26,7 +26,13 @@
     # fixed allowlist would silently break those posts); 'blob:' is what the
     # product-photo uploader renders from — uploaded images are downscaled and
     # stored in the browser's IndexedDB, then displayed via object URLs.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+    # connect-src: 'self' covers /.netlify/functions/bee23, but the Supabase
+    # backend (auth.getSession/onAuthStateChange on every route, admin-login,
+    # and every supabase.from(...) call in remote.ts) is cross-origin against
+    # https://<project-ref>.supabase.co — without this it's silently blocked
+    # by the browser, surfacing as "Couldn't reach the office" on login and
+    # as failed data loads everywhere else Supabase is configured.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; base-uri 'self'; frame-ancestors 'self'"
 
 # Crawler-facing files should not be cached for long — the sitemap changes with
 # every post, and a stale robots.txt is worse than none.
