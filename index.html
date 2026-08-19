@@ -3,21 +3,121 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Defaults. Every route overwrites these at runtime via src/lib/seo.ts;
+         they exist so a crawler that never executes JS still gets the basics. -->
     <title>Harcourt Valley Vineyards — Wine, Weddings &amp; Events | Harcourt, Victoria</title>
     <meta
       name="description"
       content="Bendigo's most awarded winery. Cellar door, weddings in the vines, and long-table events on granite country — 30 minutes from Bendigo, 90 from Melbourne."
     />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2326231F'/%3E%3Ctext x='32' y='43' font-family='Georgia,serif' font-style='italic' font-size='30' fill='%23F6F2E9' text-anchor='middle'%3EHV%3C/text%3E%3C/svg%3E"
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://www.harcourtvalley.com.au/" />
+    <meta name="author" content="Harcourt Valley Vineyards" />
+    <meta name="theme-color" content="#26231f" />
+    <meta name="format-detection" content="telephone=yes" />
+
+    <!-- Where we physically are. Still read by a few local-search crawlers. -->
+    <meta name="geo.region" content="AU-VIC" />
+    <meta name="geo.placename" content="Harcourt, Victoria" />
+    <meta name="geo.position" content="-36.9986;144.2517" />
+    <meta name="ICBM" content="-36.9986, 144.2517" />
+
+    <!-- Social cards -->
+    <meta property="og:site_name" content="Harcourt Valley Vineyards" />
+    <meta property="og:locale" content="en_AU" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Harcourt Valley Vineyards — Wine, Weddings &amp; Events | Harcourt, Victoria" />
+    <meta
+      property="og:description"
+      content="Bendigo's most awarded winery. Cellar door, weddings in the vines, and long-table events on granite country — 30 minutes from Bendigo, 90 from Melbourne."
     />
+    <meta property="og:url" content="https://www.harcourtvalley.com.au/" />
+    <meta property="og:image" content="https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png" />
+    <meta property="og:image:alt" content="Vine rows running toward the granite hills at Harcourt Valley Vineyards" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Harcourt Valley Vineyards — Wine, Weddings &amp; Events" />
+    <meta
+      name="twitter:description"
+      content="Bendigo's most awarded winery. Cellar door, weddings in the vines, and long-table events on granite country."
+    />
+    <meta name="twitter:image" content="https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://image.qwenlm.ai" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Marcellus&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Baseline structured data. Present on first byte for engines that read
+         the raw HTML; the routes add page-specific graphs on top. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["Winery", "LocalBusiness", "TouristAttraction"],
+            "@id": "https://www.harcourtvalley.com.au/#winery",
+            "name": "Harcourt Valley Vineyards",
+            "legalName": "Harcourt Valley Vineyards Pty Ltd",
+            "url": "https://www.harcourtvalley.com.au",
+            "telephone": "+61 3 5474 2210",
+            "email": "hello@harcourtvalley.example",
+            "foundingDate": "1975",
+            "priceRange": "$$",
+            "currenciesAccepted": "AUD",
+            "image": "https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png",
+            "logo": "https://www.harcourtvalley.com.au/favicon.svg",
+            "description": "Harcourt Valley Vineyards is a family-run winery in Harcourt, Victoria, in the Bendigo wine region. It has won more than 500 show medals, holds a 5-star Halliday Wine Companion rating, and hosts weddings and events among the oldest vines in the Mount Alexander Shire.",
+            "slogan": "Award-winning wine, grown on granite.",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "41 Schoolhouse Rd",
+              "addressLocality": "Harcourt",
+              "addressRegion": "VIC",
+              "postalCode": "3453",
+              "addressCountry": "AU"
+            },
+            "geo": { "@type": "GeoCoordinates", "latitude": -36.9986, "longitude": 144.2517 },
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["https://schema.org/Friday", "https://schema.org/Saturday", "https://schema.org/Sunday"],
+                "opens": "11:00",
+                "closes": "17:00"
+              }
+            ],
+            "areaServed": [
+              { "@type": "City", "name": "Bendigo" },
+              { "@type": "City", "name": "Castlemaine" },
+              { "@type": "City", "name": "Melbourne" },
+              { "@type": "AdministrativeArea", "name": "Central Victoria" }
+            ],
+            "award": [
+              "500+ Australian and international wine show medals",
+              "5-star winery, Halliday Wine Companion"
+            ],
+            "sameAs": [
+              "https://www.facebook.com/harcourtvalleyvineyards",
+              "https://www.instagram.com/harcourtvalleyvineyards"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.harcourtvalley.com.au/#website",
+            "url": "https://www.harcourtvalley.com.au",
+            "name": "Harcourt Valley Vineyards",
+            "inLanguage": "en-AU",
+            "publisher": { "@id": "https://www.harcourtvalley.com.au/#winery" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

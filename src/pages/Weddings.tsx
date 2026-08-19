@@ -2,18 +2,69 @@ import React, { useState } from "react";
 import { IMG, type EventSubtype } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
-import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, FaqList, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
+import { WEDDING_FAQS } from "../lib/faqs";
+import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
+import { BUSINESS, absUrl } from "../lib/site";
 
 const ANCHORS = [
   { id: "story", label: "The venue" },
   { id: "ballparks", label: "Ballparks" },
   { id: "included", label: "What's included" },
+  { id: "questions", label: "Questions" },
   { id: "enquire", label: "Enquire" },
 ];
 
 export default function Weddings() {
   useApplyAppearance();
+
+  useSeo({
+    title: "Vineyard weddings in Victoria — get married in the vines at Harcourt",
+    description:
+      "A vineyard wedding venue 30 minutes from Bendigo and 90 from Melbourne. One wedding a day, 120 seated or 180 standing, the property yours 10am to midnight, and published ballpark costs from $6,500.",
+    path: "/weddings",
+    image: IMG.wedding,
+    imageAlt: "Wedding ceremony aisle set between vine rows at Harcourt Valley Vineyards",
+    keywords: ["vineyard wedding Victoria", "Bendigo wedding venue", "winery wedding Central Victoria", "Harcourt wedding venue"],
+    jsonLd: [
+      webPageSchema({
+        path: "/weddings",
+        name: "Weddings in the vines",
+        description: "Wedding venue hire at Harcourt Valley Vineyards — one wedding a day, 120 seated or 180 standing.",
+        primaryImage: IMG.wedding,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "Weddings", path: "/weddings" },
+      ]),
+      faqSchema(WEDDING_FAQS),
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${absUrl("/weddings")}#service`,
+        name: "Vineyard wedding venue hire",
+        serviceType: "Wedding venue",
+        provider: { "@id": `${absUrl("/")}#winery` },
+        areaServed: [
+          { "@type": "City", name: "Bendigo" },
+          { "@type": "City", name: "Castlemaine" },
+          { "@type": "City", name: "Melbourne" },
+        ],
+        url: absUrl("/weddings"),
+        description:
+          "Ceremony among the vine rows and a reception for up to 120 seated or 180 standing at Harcourt Valley Vineyards, Harcourt, Victoria. One wedding a day, with the property available from 10am to midnight.",
+        offers: {
+          "@type": "AggregateOffer",
+          priceCurrency: "AUD",
+          lowPrice: 2200,
+          highPrice: 12400,
+          offerCount: 4,
+          availability: "https://schema.org/InStock",
+        },
+      },
+    ],
+  });
   const { config } = useStore();
   const [presetSubtype] = useState<EventSubtype | undefined>(undefined);
 
@@ -118,6 +169,22 @@ export default function Weddings() {
       </section>
 
       {/* Enquire */}
+      {/* Questions, answered on the page rather than in a PDF */}
+      <section id="questions" className="max-w-4xl mx-auto px-4 sm:px-6 py-16" aria-labelledby="wed-faq-heading">
+        <p className="kicker text-granite-500">Before you enquire</p>
+        <h2 id="wed-faq-heading" className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2">
+          What couples ask us first.
+        </h2>
+        <FaqList faqs={WEDDING_FAQS} className="mt-10" />
+        <p className="mt-8 text-sm text-granite-500">
+          Anything not covered, ring{" "}
+          <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="underline underline-offset-4 hover:text-garnet">
+            {BUSINESS.phoneDisplay}
+          </a>
+          .
+        </p>
+      </section>
+
       <section id="enquire" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
           kicker="Enquire"

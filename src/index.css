@@ -869,3 +869,8 @@ body::before {
     display: none;
   }
 }
+
+/* ---- Journal article body: first block sits flush with the rule above it ---- */
+.post-body > *:first-child {
+  margin-top: 0;
+}

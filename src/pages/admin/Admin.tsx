@@ -4,6 +4,7 @@ import { fmtDate, fmtDateLong, timeAgo, type Lead } from "../../lib/data";
 import { useApplyAppearance, useStore, type BackendStatus } from "../../lib/store";
 import { isRemote } from "../../lib/supabase";
 import { hasAdminSession, signInWithPasscode, signOut as endSession } from "../../lib/auth";
+import { useSeo } from "../../lib/seo";
 import { Wordmark } from "../../components/chrome";
 import { ArrowRight, CloseIcon, MailIcon, MenuIcon, SendIcon, TypeChip, Tick } from "../../components/ui";
 import { CompassIcon, Walkthrough, type TourStep } from "../../components/Walkthrough";
@@ -11,10 +12,11 @@ import { CalendarView, KanbanView } from "./Pipeline";
 import { LeadsView } from "./Leads";
 import { SequencesView } from "./Sequences";
 import { CmsView } from "./Cms";
+import { JournalView } from "./Journal";
 import { ShopManagerView, TradeInboxView } from "./Ops";
 import { OutreachView } from "./Outreach";
 
-export type Tab = "overview" | "pipeline" | "calendar" | "leads" | "sequences" | "cms" | "trade" | "shop" | "outreach";
+export type Tab = "overview" | "pipeline" | "calendar" | "leads" | "sequences" | "cms" | "journal" | "trade" | "shop" | "outreach";
 
 const TABS: { id: Tab; label: string; group: string }[] = [
   { id: "overview", label: "Today", group: "Day to day" },
@@ -25,6 +27,7 @@ const TABS: { id: Tab; label: string; group: string }[] = [
   { id: "shop", label: "Shop & stock", group: "Wine side" },
   { id: "sequences", label: "Email sequences", group: "Behind the scenes" },
   { id: "cms", label: "Website content", group: "Behind the scenes" },
+  { id: "journal", label: "The journal", group: "Behind the scenes" },
   { id: "outreach", label: "Outreach (Bee23)", group: "Behind the scenes" },
 ];
 
@@ -85,6 +88,13 @@ function Glyph({ tab }: { tab: Tab }) {
       return (
         <svg viewBox="0 0 24 24" className={p} aria-hidden="true">
           <path d="m14.5 5 4.5 4.5L8 20.5H3.5V16L14.5 5Z" {...s} />
+        </svg>
+      );
+    case "journal":
+      return (
+        <svg viewBox="0 0 24 24" className={p} aria-hidden="true">
+          <path d="M5 4.5h9.5l4.5 4.5v10.5H5z" {...s} />
+          <path d="M14 4.5V9h5M8.5 13h7M8.5 16.5h4.5" {...s} />
         </svg>
       );
     case "outreach":
@@ -181,6 +191,14 @@ function buildTourSteps(go: (t: Tab) => void): TourStep[] {
       tip: "Change one thing at a time and look at the site after each. It's easier to undo that way.",
       placement: "dock",
       before: at("cms"),
+    },
+    {
+      id: "journal",
+      title: "Write for the people searching.",
+      body: "The journal is how people find you before they know your name. Every post is another page search engines can send someone to, and another answer an AI assistant can quote. One photo each, and a checklist that tells you when a post is ready.",
+      tip: "One good post a month beats five rushed ones. Write the thing people ring up and ask.",
+      placement: "dock",
+      before: at("journal"),
     },
     {
       id: "outreach",
@@ -514,6 +532,13 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
 
 export default function Admin() {
   useApplyAppearance();
+  /* robots.txt already disallows /admin; this is the belt to that pair of braces. */
+  useSeo({
+    title: "The family office",
+    description: "Private admin for Harcourt Valley Vineyards.",
+    path: "/admin",
+    noindex: true,
+  });
   // With a backend the session is the truth and survives a reload; in demo mode
   // there's nothing to verify, so sessionStorage stands in as before.
   const [authed, setAuthed] = useState(() => !isRemote && sessionStorage.getItem("hv-admin") === "1");
@@ -702,6 +727,7 @@ export default function Admin() {
           {tab === "leads" ? <LeadsView focusLeadId={focusLeadId} clearFocus={() => setFocusLeadId(null)} /> : null}
           {tab === "sequences" ? <SequencesView /> : null}
           {tab === "cms" ? <CmsView /> : null}
+          {tab === "journal" ? <JournalView /> : null}
           {tab === "trade" ? <TradeInboxView /> : null}
           {tab === "shop" ? <ShopManagerView /> : null}
           {tab === "outreach" ? <OutreachView /> : null}
