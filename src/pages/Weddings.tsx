@@ -2,17 +2,69 @@ import React, { useState } from "react";
 import { IMG, type EventSubtype } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
-import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Stat, Tick } from "../components/ui";
+import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, FaqList, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { TypedLines } from "../components/TypedLines";
+import { WEDDING_FAQS } from "../lib/faqs";
+import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
+import { BUSINESS, absUrl } from "../lib/site";
 
 const ANCHORS = [
   { id: "story", label: "The venue" },
   { id: "ballparks", label: "Ballparks" },
   { id: "included", label: "What's included" },
+  { id: "questions", label: "Questions" },
   { id: "enquire", label: "Enquire" },
 ];
 
 export default function Weddings() {
   useApplyAppearance();
+
+  useSeo({
+    title: "Vineyard weddings in Victoria — get married in the vines at Harcourt",
+    description:
+      "A vineyard wedding venue 30 minutes from Bendigo and 90 from Melbourne. One wedding a day, 120 seated or 180 standing, the property yours 10am to midnight, and published ballpark costs from $6,500.",
+    path: "/weddings",
+    image: IMG.wedding,
+    imageAlt: "Wedding ceremony aisle set between vine rows at Harcourt Valley Vineyards",
+    keywords: ["vineyard wedding Victoria", "Bendigo wedding venue", "winery wedding Central Victoria", "Harcourt wedding venue"],
+    jsonLd: [
+      webPageSchema({
+        path: "/weddings",
+        name: "Weddings in the vines",
+        description: "Wedding venue hire at Harcourt Valley Vineyards — one wedding a day, 120 seated or 180 standing.",
+        primaryImage: IMG.wedding,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "Weddings", path: "/weddings" },
+      ]),
+      faqSchema(WEDDING_FAQS),
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${absUrl("/weddings")}#service`,
+        name: "Vineyard wedding venue hire",
+        serviceType: "Wedding venue",
+        provider: { "@id": `${absUrl("/")}#winery` },
+        areaServed: [
+          { "@type": "City", name: "Bendigo" },
+          { "@type": "City", name: "Castlemaine" },
+          { "@type": "City", name: "Melbourne" },
+        ],
+        url: absUrl("/weddings"),
+        description:
+          "Ceremony among the vine rows and a reception for up to 120 seated or 180 standing at Harcourt Valley Vineyards, Harcourt, Victoria. One wedding a day, with the property available from 10am to midnight.",
+        offers: {
+          "@type": "AggregateOffer",
+          priceCurrency: "AUD",
+          lowPrice: 2200,
+          highPrice: 12400,
+          offerCount: 4,
+          availability: "https://schema.org/InStock",
+        },
+      },
+    ],
+  });
   const { config } = useStore();
   const [presetSubtype] = useState<EventSubtype | undefined>(undefined);
 
@@ -24,7 +76,7 @@ export default function Weddings() {
         <div className="absolute inset-0 bg-gradient-to-t from-granite-900 via-granite-900/30 to-granite-900/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 text-bone">
-            <p className="kicker text-granite-300">02 — Weddings</p>
+            <p className="kicker text-granite-300">Weddings</p>
             <h1 className="font-display font-medium text-4xl sm:text-6xl xl:text-7xl leading-[1.02] mt-4 max-w-3xl">{config.weddingsHeadline}</h1>
             <p className="mt-5 max-w-xl text-granite-100 leading-relaxed">
               A working vineyard 30 minutes from Bendigo. Ceremony among the rows, dinner with our wine, and granite hills behind every photo.
@@ -60,26 +112,15 @@ export default function Weddings() {
             </p>
             <p className="font-display italic text-xl text-granite-900">"You'll know within ten minutes of standing here. Couples always do."</p>
           </div>
-          <div className="mt-9 grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-granite-300 border-y-2 border-granite-300">
-            <div className="pr-3">
-              <Stat value="120" label="Seated" />
-            </div>
-            <div className="px-3">
-              <Stat value="180" label="Standing" />
-            </div>
-            <div className="px-3">
-              <Stat value="10–12" label="Access, am to midnight" />
-            </div>
-            <div className="pl-3">
-              <Stat value="1/day" label="Weddings, ever" />
-            </div>
+          <div className="mt-9 border-t-2 border-granite-300 pt-7">
+            <TypedLines page="weddings" />
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <div className="img-frame border-2 border-granite-900 shadow-hard">
+          <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
             <img src={IMG.granite} alt="Granite boulders and gums behind the vineyard — the photo backdrop" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
           </div>
-          <div className="mt-6 img-frame-alt border-2 border-granite-900">
+          <div className="mt-6 img-frame-alt border-2 border-granite-900 lux-zoom">
             <img src={IMG.longTable} alt="The function shed dressed for a wedding dinner" className="w-full h-[220px] sm:h-[280px] object-cover img-in" loading="lazy" />
           </div>
         </Reveal>
@@ -90,7 +131,6 @@ export default function Weddings() {
       {/* Ballparks */}
       <section id="ballparks" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
-          index="02"
           kicker="Ballpark figures"
           title={<>Straight numbers, no pricing games.</>}
           lead="What a day here actually costs. Final quotes move with season, day of week and guest count — these are honest starting points."
@@ -112,7 +152,7 @@ export default function Weddings() {
       {/* Inclusions */}
       <section id="included" className="bg-granite-100/50 border-y-2 border-granite-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-          <SectionHead index="03" kicker="What's included" title={<>The whole property, not a room.</>} />
+          <SectionHead kicker="What's included" title={<>The whole property, not a room.</>} />
           <div className="mt-10 grid sm:grid-cols-2 gap-x-10 gap-y-4 max-w-4xl">
             {config.inclusions.map((item, i) => (
               <Reveal key={item} delay={(i % 2) * 70}>
@@ -129,9 +169,24 @@ export default function Weddings() {
       </section>
 
       {/* Enquire */}
+      {/* Questions, answered on the page rather than in a PDF */}
+      <section id="questions" className="max-w-4xl mx-auto px-4 sm:px-6 py-16" aria-labelledby="wed-faq-heading">
+        <p className="kicker text-granite-500">Before you enquire</p>
+        <h2 id="wed-faq-heading" className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2">
+          What couples ask us first.
+        </h2>
+        <FaqList faqs={WEDDING_FAQS} className="mt-10" />
+        <p className="mt-8 text-sm text-granite-500">
+          Anything not covered, ring{" "}
+          <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="underline underline-offset-4 hover:text-garnet">
+            {BUSINESS.phoneDisplay}
+          </a>
+          .
+        </p>
+      </section>
+
       <section id="enquire" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <SectionHead
-          index="04"
           kicker="Enquire"
           title={<>Tell us about the day.</>}
           lead="We reply within one business day. Ask for the info pack and it arrives as three short emails — never a flood."

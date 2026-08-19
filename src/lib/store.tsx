@@ -1,10 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bee23Profile, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
-  Sequence, SequenceStep, SiteConfig, TradeOrder,
-  DAY, dstr, iso, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedProducts,
-  seedProfiles, seedSequences, seedSends, seedTradeOrders, uid,
+  Bee23Profile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
+  ProductImage, Sequence, SequenceStep, SiteConfig, TradeOrder,
+  IMG, referencedImageIds,
+  DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
+  seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
+import { isRemote, supabase } from "./supabase";
+import { hydrate, syncState } from "./remote";
+import { MAX_IMAGES_PER_PRODUCT, clearImages, deleteImages, prepareImage, pruneOrphans, putImage } from "./media";
 
 interface StoreState {
   products: Product[];
@@ -16,10 +20,11 @@ interface StoreState {
   sends: EmailSend[];
   profiles: Bee23Profile[];
   outbox: OutboxItem[];
+  posts: BlogPost[];
   config: SiteConfig;
 }
 
-const STORAGE_KEY = "hv-state-v3";
+const STORAGE_KEY = "hv-state-v4";
 
 function freshState(): StoreState {
   return {
@@ -32,6 +37,7 @@ function freshState(): StoreState {
     sends: seedSends(),
     profiles: seedProfiles(),
     outbox: seedOutbox(),
+    posts: seedPosts(),
     config: seedConfig(),
   };
 }
@@ -40,8 +46,14 @@ function loadState(): StoreState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as StoreState;
-      if (parsed && parsed.config && parsed.products) return parsed;
+      const parsed = JSON.parse(raw) as Partial<StoreState>;
+      if (parsed && parsed.config && parsed.products) {
+        /* Merge over a fresh seed so a slice added after someone's last visit
+           (posts, say) arrives populated instead of undefined, and a config
+           field added since then (typedLines, say) fills in rather than
+           reaching the site as undefined. */
+        return { ...freshState(), ...parsed, config: { ...seedConfig(), ...parsed.config } };
+      }
     }
   } catch {
     /* fall through to seed */
@@ -54,7 +66,11 @@ export interface Toast {
   msg: string;
 }
 
+/** `local` = no backend configured; `offline` = configured but unreachable. */
+export type BackendStatus = "local" | "connecting" | "live" | "offline";
+
 interface StoreValue extends StoreState {
+  backend: BackendStatus;
   toasts: Toast[];
   toast: (msg: string) => void;
   cart: CartLine[];
@@ -74,10 +90,21 @@ interface StoreValue extends StoreState {
   fulfillTradeOrder: (id: string) => void;
   updateProduct: (id: string, patch: Partial<Product>) => void;
   addProduct: (p: { name: string; type: Product["type"]; varietal: string; vintage: string | null; priceCents: number; stock: number; description: string }) => void;
+  /** Uploads picked files into the product gallery. Resolves with per-file failures rather than throwing. */
+  addProductImages: (productId: string, files: File[]) => Promise<{ added: number; errors: string[] }>;
+  removeProductImage: (productId: string, imageId: string) => void;
+  /** Moves an image to the front, making it the card/hero shot. */
+  setPrimaryImage: (productId: string, imageId: string) => void;
+  moveProductImage: (productId: string, imageId: string, direction: -1 | 1) => void;
+  updateImageAlt: (productId: string, imageId: string, alt: string) => void;
   updateSequence: (id: string, steps: SequenceStep[]) => void;
   toggleSequence: (id: string) => void;
   updateConfig: (patch: Partial<SiteConfig>) => void;
-  resetDemo: () => void;
+  addPost: () => BlogPost;
+  updatePost: (id: string, patch: Partial<BlogPost>) => void;
+  deletePost: (id: string) => void;
+  /** False when refused because a live backend makes reseeding destructive. */
+  resetDemo: () => boolean;
   sendDueEmails: () => number;
   dueEmails: EmailSend[];
   addProfile: (p: Omit<Bee23Profile, "id">) => void;
@@ -101,9 +128,109 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastTimers = useRef<number[]>([]);
 
+  /* ---------- backend ----------
+     With no env vars `isRemote` is false and everything below is inert, so the
+     app behaves exactly as it did on localStorage alone. With a backend
+     configured, we load from Postgres once and then mirror each change. */
+
+  const [backend, setBackend] = useState<BackendStatus>(isRemote ? "connecting" : "local");
+  // What the server is believed to hold. Diffing against this is what keeps
+  // writes down to the rows that actually moved.
+  const synced = useRef<StoreState | null>(null);
+  const pending = useRef<number | undefined>(undefined);
+  // Held in a ref as well as state: the sync effect needs the current value
+  // without re-running the whole push every time a session refreshes.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminRef = useRef(false);
+  adminRef.current = isAdmin;
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => setIsAdmin(Boolean(data.session)));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setIsAdmin(Boolean(session)));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isRemote) return;
+    let live = true;
+    hydrate()
+      .then((remote) => {
+        if (!live) return;
+        if (!remote) {
+          setBackend("offline");
+          return;
+        }
+        // The public site is only allowed to read products and config, so an
+        // empty admin table there means "not permitted", not "deleted" — keep
+        // whatever is already local rather than wiping it.
+        setState((s) => {
+          const merged: StoreState = {
+            // Photos have no table yet (see toProduct in remote.ts), so a
+            // remote row never carries them — overlay each product's local
+            // images back on by id, or hydrating would silently wipe out
+            // whatever had been uploaded in this browser.
+            products: remote.products.length
+              ? remote.products.map((rp) => {
+                  const local = s.products.find((lp) => lp.id === rp.id);
+                  return local && local.images.length ? { ...rp, images: local.images } : rp;
+                })
+              : s.products,
+            leads: remote.leads.length ? remote.leads : s.leads,
+            notes: remote.notes.length ? remote.notes : s.notes,
+            orders: remote.orders.length ? remote.orders : s.orders,
+            tradeOrders: remote.tradeOrders.length ? remote.tradeOrders : s.tradeOrders,
+            sequences: remote.sequences.length ? remote.sequences : s.sequences,
+            sends: remote.sends.length ? remote.sends : s.sends,
+            profiles: remote.profiles.length ? remote.profiles : s.profiles,
+            outbox: remote.outbox.length ? remote.outbox : s.outbox,
+            // The journal has no table yet — posts stay local until the
+            // backend grows one, same as product photo metadata.
+            posts: s.posts,
+            config: remote.config,
+          };
+          synced.current = merged;
+          return merged;
+        });
+        setBackend("live");
+      })
+      .catch(() => live && setBackend("offline"));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  /* addProductImages is async and can run for seconds while files decode, so it
+     reads the live state through a ref rather than closing over a stale copy. */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // Push the difference, debounced so a burst of keystrokes is one write.
+    if (!isRemote || synced.current === null) return;
+    window.clearTimeout(pending.current);
+    pending.current = window.setTimeout(() => {
+      const before = synced.current;
+      if (!before) return;
+      syncState(before, state, adminRef.current).then((errors) => {
+        if (errors.length > 0) console.warn("Some changes did not reach the backend:", errors);
+        synced.current = state;
+      });
+    }, 600);
   }, [state]);
+
+  useEffect(() => () => window.clearTimeout(pending.current), []);
+
+  /* Once per session, drop any stored blob no product still points at — e.g.
+     photos belonging to a product deleted in another tab. */
+  useEffect(() => {
+    void pruneOrphans(referencedImageIds(stateRef.current.products));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("hv-cart-v1", JSON.stringify(cart));
@@ -247,12 +374,100 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         stripePriceId: "price_demo_" + uid(),
         featured: false,
         active: true,
+        images: [],
         ...p,
       };
       setState((s) => ({ ...s, products: [product, ...s.products] }));
     },
     [],
   );
+
+  /* ---------- product photos ---------- */
+
+  const addProductImages = useCallback(
+    async (productId: string, files: File[]): Promise<{ added: number; errors: string[] }> => {
+      const product = stateRef.current.products.find((p) => p.id === productId);
+      if (!product) return { added: 0, errors: ["That product no longer exists."] };
+
+      const room = MAX_IMAGES_PER_PRODUCT - (product.images?.length ?? 0);
+      const errors: string[] = [];
+      if (room <= 0) return { added: 0, errors: [`${product.name} already has ${MAX_IMAGES_PER_PRODUCT} photos — remove one first.`] };
+      if (files.length > room) errors.push(`Only ${room} slot${room === 1 ? "" : "s"} left, so the first ${room} were used.`);
+
+      const accepted: ProductImage[] = [];
+      for (const file of files.slice(0, room)) {
+        try {
+          const prepared = await prepareImage(file);
+          const id = uid();
+          await putImage(id, prepared.blob);
+          accepted.push({
+            id,
+            alt: "",
+            width: prepared.width,
+            height: prepared.height,
+            bytes: prepared.blob.size,
+            type: prepared.type,
+            addedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          errors.push(e instanceof Error ? e.message : `"${file.name}" couldn't be added.`);
+        }
+      }
+
+      if (accepted.length > 0) {
+        setState((s) => ({
+          ...s,
+          products: s.products.map((p) => (p.id === productId ? { ...p, images: [...(p.images ?? []), ...accepted].slice(0, MAX_IMAGES_PER_PRODUCT) } : p)),
+        }));
+      }
+      return { added: accepted.length, errors };
+    },
+    [],
+  );
+
+  const removeProductImage = useCallback((productId: string, imageId: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === productId ? { ...p, images: (p.images ?? []).filter((i) => i.id !== imageId) } : p)),
+    }));
+    void deleteImages([imageId]);
+  }, []);
+
+  const setPrimaryImage = useCallback((productId: string, imageId: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id !== productId) return p;
+        const target = (p.images ?? []).find((i) => i.id === imageId);
+        if (!target) return p;
+        return { ...p, images: [target, ...(p.images ?? []).filter((i) => i.id !== imageId)] };
+      }),
+    }));
+  }, []);
+
+  const moveProductImage = useCallback((productId: string, imageId: string, direction: -1 | 1) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id !== productId) return p;
+        const images = [...(p.images ?? [])];
+        const from = images.findIndex((i) => i.id === imageId);
+        const to = from + direction;
+        if (from < 0 || to < 0 || to >= images.length) return p;
+        [images[from], images[to]] = [images[to], images[from]];
+        return { ...p, images };
+      }),
+    }));
+  }, []);
+
+  const updateImageAlt = useCallback((productId: string, imageId: string, alt: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) =>
+        p.id === productId ? { ...p, images: (p.images ?? []).map((i) => (i.id === imageId ? { ...i, alt } : i)) } : p,
+      ),
+    }));
+  }, []);
 
   /* ---------- sequences / email ---------- */
 
@@ -294,9 +509,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, config: { ...s.config, ...patch } }));
   }, []);
 
-  const resetDemo = useCallback(() => {
+  /* ---------- journal ---------- */
+
+  /** Creates an empty draft and returns it so the editor can open on it. */
+  const addPost = useCallback((): BlogPost => {
+    const today = new Date().toISOString().slice(0, 10);
+    const post: BlogPost = {
+      id: uid(),
+      slug: "",
+      title: "",
+      excerpt: "",
+      body: "",
+      category: "Wine",
+      tags: [],
+      author: "Harcourt Valley",
+      authorRole: "The family",
+      publishedAt: today,
+      updatedAt: today,
+      readMinutes: 1,
+      featured: false,
+      published: false,
+      image: IMG.vines,
+      imageAlt: "",
+    };
+    setState((s) => ({ ...s, posts: [post, ...s.posts] }));
+    return post;
+  }, []);
+
+  const updatePost = useCallback((id: string, patch: Partial<BlogPost>) => {
+    setState((s) => ({
+      ...s,
+      posts: s.posts.map((p) => {
+        if (p.id !== id) return p;
+        const next = { ...p, ...patch, updatedAt: new Date().toISOString().slice(0, 10) };
+        /* Keep the derived bits honest without making the editor babysit them. */
+        if (!next.slug.trim()) next.slug = slugify(next.title) || p.id;
+        next.slug = slugify(next.slug);
+        next.readMinutes = readingMinutes(next.body);
+        return next;
+      }),
+    }));
+  }, []);
+
+  const deletePost = useCallback((id: string) => {
+    setState((s) => ({ ...s, posts: s.posts.filter((p) => p.id !== id) }));
+  }, []);
+
+  /**
+   * Reseeds the demo. Refused outright once a backend is live: the diff sync
+   * would read a wholesale swap as "delete every row" and take the real
+   * enquiries, orders and website copy with it. Reseeding is a demo affordance,
+   * not something that should exist next to live customer records.
+   */
+  const resetDemo = useCallback((): boolean => {
+    if (isRemote) return false;
     setState(freshState());
     setCart([]);
+    /* The seed has no photos, so every stored blob is now unreferenced. */
+    void clearImages();
+    return true;
   }, []);
 
   /* ---------- outreach ---------- */
@@ -318,6 +589,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreValue = {
     ...state,
+    backend,
     toasts,
     toast,
     cart,
@@ -337,9 +609,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     fulfillTradeOrder,
     updateProduct,
     addProduct,
+    addProductImages,
+    removeProductImage,
+    setPrimaryImage,
+    moveProductImage,
+    updateImageAlt,
     updateSequence,
     toggleSequence,
     updateConfig,
+    addPost,
+    updatePost,
+    deletePost,
     resetDemo,
     sendDueEmails,
     dueEmails,

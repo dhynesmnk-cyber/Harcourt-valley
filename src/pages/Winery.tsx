@@ -2,7 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { IMG, money, type Product, type ProductType } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
-import { ArrowRight, BottleArt, CloseIcon, ContourDivider, MedalRow, MinusIcon, Reveal, SectionHead, Stat, Tick } from "../components/ui";
+import { ArrowRight, BottleArt, CloseIcon, ContourDivider, FaqList, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { TypedLines } from "../components/TypedLines";
+import { ProductCardImage, ProductGallery } from "../components/product";
+import { WINERY_FAQS } from "../lib/faqs";
+import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
+import { BUSINESS, absUrl } from "../lib/site";
 
 const FILTERS: { value: "all" | ProductType; label: string }[] = [
   { value: "all", label: "Everything" },
@@ -37,9 +42,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <button type="button" aria-label="Close product details" onClick={onClose} className="absolute inset-0 bg-granite-900/60 fade-in cursor-default" />
       <div className="rise-in relative bg-bone border-2 border-granite-900 shadow-hard w-full max-w-2xl grid sm:grid-cols-[240px_1fr] max-h-[90svh] overflow-y-auto thin-scroll" role="dialog" aria-modal="true" aria-label={product.name}>
-        <div className="bg-granite-100 border-b-2 sm:border-b-0 sm:border-r-2 border-granite-900 grid place-items-center py-8 sm:py-0">
-          <BottleArt product={product} className="h-56 sm:h-72 w-auto img-in" />
-        </div>
+        <ProductGallery product={product} />
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -98,19 +101,67 @@ export default function Winery() {
   const visible = useMemo(() => products.filter((p) => p.active && (filter === "all" || p.type === filter)), [products, filter]);
   const selected = products.find((p) => p.id === selectedId) ?? null;
 
+  useSeo({
+    title: "The winery & wine shop — Bendigo's most-awarded winery",
+    description:
+      "Shiraz, Cabernet, Chardonnay, Riesling and Rosé grown on decomposed granite at Harcourt, Victoria. 500+ show medals, a 5-star Halliday rating, cellar door Friday to Sunday, and free freight on six bottles.",
+    path: "/winery",
+    image: IMG.barrels,
+    imageAlt: "Oak barrels resting in the granite cellar at Harcourt Valley Vineyards",
+    keywords: ["Bendigo wine region", "Central Victorian Shiraz", "buy Australian wine online", "cellar door Harcourt"],
+    jsonLd: [
+      webPageSchema({
+        path: "/winery",
+        name: "The winery & wine shop",
+        description: "The Harcourt Valley range, tasting notes and online ordering, plus cellar door details.",
+        primaryImage: IMG.barrels,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "The winery", path: "/winery" },
+      ]),
+      faqSchema(WINERY_FAQS),
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: "Harcourt Valley Vineyards wines",
+        numberOfItems: visible.length,
+        itemListElement: visible.map((p, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          item: {
+            "@type": "Product",
+            name: `${p.name}${p.vintage ? " " + p.vintage : ""}`,
+            description: p.description,
+            category: p.type,
+            brand: { "@id": `${absUrl("/")}#winery` },
+            offers: {
+              "@type": "Offer",
+              price: (p.priceCents / 100).toFixed(2),
+              priceCurrency: "AUD",
+              availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              seller: { "@id": `${absUrl("/")}#winery` },
+              url: absUrl("/winery"),
+            },
+          },
+        })),
+      },
+    ],
+  });
+
   return (
     <div>
       {/* Intro */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16">
         <SectionHead
-          index="01"
+          as="h1"
           kicker="The winery"
           title={<>Bendigo's most-awarded winery.</>}
           lead="500+ show medals, a 5-star Halliday rating, and the oldest vineyard in the shire — still family-run, still poured by the people who grew it."
         />
         <div className="mt-10 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
-            <div className="img-frame border-2 border-granite-900 shadow-hard">
+            <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
               <img src={IMG.barrels} alt="Oak barrels resting in the granite cellar" className="w-full h-[280px] sm:h-[380px] object-cover img-in" />
             </div>
           </Reveal>
@@ -126,16 +177,8 @@ export default function Winery() {
               </p>
               <p className="font-display italic text-xl text-granite-900">"If we wouldn't pour it at our own table, it doesn't get a label." — Tom</p>
             </div>
-            <div className="mt-8 grid grid-cols-3 divide-x-2 divide-granite-300 border-y-2 border-granite-300">
-              <div className="pr-4">
-                <Stat value="500+" label="Medals" />
-              </div>
-              <div className="px-4">
-                <Stat value="5★" label="Halliday" />
-              </div>
-              <div className="pl-4">
-                <Stat value="1874" label="First planted" />
-              </div>
+            <div className="mt-8 border-t-2 border-granite-300 pt-7">
+              <TypedLines page="winery" />
             </div>
           </Reveal>
         </div>
@@ -147,7 +190,7 @@ export default function Winery() {
 
       {/* Shop */}
       <section id="shop" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <SectionHead index="02" kicker="The shelf" title={<>Take some home.</>} lead="Six or more bottles and freight's on us. Guest checkout — no account needed." />
+        <SectionHead kicker="The shelf" title={<>Take some home.</>} lead="Six or more bottles and freight's on us. Guest checkout — no account needed." />
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <p className="kicker text-granite-500 mr-2">Filter</p>
           {FILTERS.map((f) => (
@@ -171,10 +214,10 @@ export default function Winery() {
             const soldOut = p.stock === 0;
             return (
               <Reveal key={p.id} delay={(i % 4) * 80}>
-                <article className="group border-2 border-granite-900 bg-bone flex flex-col hover:shadow-hard transition-shadow duration-300">
+                <article className="group border-2 border-granite-900 bg-bone flex flex-col lux-card">
                   <button type="button" onClick={() => setSelectedId(p.id)} className="text-left w-full cursor-pointer">
-                    <div className="bg-granite-100/80 border-b-2 border-granite-900 grid place-items-center py-7 overflow-hidden">
-                      <BottleArt product={p} className="h-48 w-auto transition-transform duration-500 group-hover:-translate-y-1.5" />
+                    <div className="bg-granite-100/80 border-b-2 border-granite-900 h-56 overflow-hidden">
+                      <ProductCardImage product={p} />
                     </div>
                     <div className="p-5">
                       <p className="kicker text-granite-500">
@@ -221,7 +264,7 @@ export default function Winery() {
       <section className="bg-granite-900 text-bone mt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
-            <p className="kicker text-granite-500">03 — Trade &amp; stockists</p>
+            <p className="kicker text-granite-500">Trade &amp; stockists</p>
             <h2 className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-3">Pour it at your place.</h2>
             <p className="mt-5 text-granite-300 max-w-lg leading-relaxed">
               We work directly with bottle shops, bars and restaurants — no distributor in the middle, margin-friendly, and the medals do half the selling for you. Minimum order 12
@@ -239,7 +282,7 @@ export default function Winery() {
             </Link>
           </Reveal>
           <Reveal delay={120}>
-            <div className="img-frame-alt border-2 border-bone/40">
+            <div className="img-frame-alt border-2 border-bone/40 lux-zoom">
               <img src={IMG.bottles} alt="Wine, beer and mead bottles on a granite table" className="w-full h-[280px] sm:h-[380px] object-cover img-in" loading="lazy" />
             </div>
           </Reveal>
@@ -262,6 +305,22 @@ export default function Winery() {
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* Questions, answered on the page */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 pb-16" aria-labelledby="win-faq-heading">
+        <p className="kicker text-granite-500">Good to know</p>
+        <h2 id="win-faq-heading" className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2">
+          Questions about the wine.
+        </h2>
+        <FaqList faqs={WINERY_FAQS} className="mt-10" />
+        <p className="mt-8 text-sm text-granite-500">
+          Ring{" "}
+          <a href={`tel:${BUSINESS.phone.replace(/\s/g, "")}`} className="underline underline-offset-4 hover:text-garnet">
+            {BUSINESS.phoneDisplay}
+          </a>{" "}
+          for anything else — including whether a sold-out wine is back.
+        </p>
       </section>
 
       {selected ? <ProductModal product={selected} onClose={() => setSelectedId(null)} /> : null}

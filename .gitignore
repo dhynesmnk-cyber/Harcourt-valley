@@ -76,6 +76,8 @@ coverage.xml
 .env
 .env.local
 .env.*
+# …but the template carries no secrets and belongs in the repo.
+!.env.example
 
 # IDE and editor files
 .vscode/

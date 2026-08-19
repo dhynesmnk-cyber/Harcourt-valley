@@ -22,4 +22,27 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://image.qwenlm.ai; connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+    # img-src: 'https:' lets the journal editor's pasted photo URLs through (a
+    # fixed allowlist would silently break those posts); 'blob:' is what the
+    # product-photo uploader renders from — uploaded images are downscaled and
+    # stored in the browser's IndexedDB, then displayed via object URLs.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+
+# Crawler-facing files should not be cached for long — the sitemap changes with
+# every post, and a stale robots.txt is worse than none.
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/xml; charset=utf-8"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/llms.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "text/plain; charset=utf-8"

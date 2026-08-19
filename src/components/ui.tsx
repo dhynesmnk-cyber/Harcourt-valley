@@ -32,31 +32,34 @@ export function Reveal({ children, className = "", delay = 0 }: { children: Reac
 /* ---------------- section header with index numeral ---------------- */
 
 export function SectionHead({
-  index,
   kicker,
   title,
   lead,
   dark = false,
   className = "",
+  as: Heading = "h2",
 }: {
-  index: string;
   kicker: string;
   title: React.ReactNode;
   lead?: React.ReactNode;
   dark?: boolean;
   className?: string;
+  /** Use "h1" when this heading is the page's only top-level one. */
+  as?: "h1" | "h2";
 }) {
   return (
     <Reveal className={className}>
-      <div className="flex items-end gap-4 sm:gap-6">
-        <span className={`num-ghost text-[4.5rem] sm:text-[7rem] select-none ${dark ? "opacity-70" : ""}`} aria-hidden="true" style={dark ? { WebkitTextStrokeColor: "var(--color-granite-500)" } : undefined}>
-          {index}
-        </span>
-        <div className="pb-1 sm:pb-3 min-w-0">
-          <p className={`kicker ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
-          <h2 className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</h2>
-          {lead ? <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`}>{lead}</p> : null}
-        </div>
+      <div className="min-w-0">
+        {/* A short garnet-to-ochre hairline carries the structure the index
+            numeral used to, without shouting a number at anyone. */}
+        <span className="block w-12 h-[2px] bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
+        <p className={`kicker mt-4 ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
+        <Heading className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</Heading>
+        {lead ? (
+          <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`} data-speakable>
+            {lead}
+          </p>
+        ) : null}
       </div>
     </Reveal>
   );
@@ -155,6 +158,13 @@ export const MinusIcon = ({ className }: { className?: string }) => (
     <path d="M5 12h14" />
   </I>
 );
+export const TrashIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <path d="M4.5 6.5h15M9.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h2.4a1.3 1.3 0 0 1 1.3 1.3v1.7" />
+    <path d="M6.5 6.5 7.4 19a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12.5" />
+    <path d="M10.5 10v6.5M13.5 10v6.5" />
+  </I>
+);
 export const SendIcon = ({ className }: { className?: string }) => (
   <I className={className}>
     <path d="M20 4 10 14M20 4l-6.5 16-3.5-6L4 10.5 20 4Z" />
@@ -164,6 +174,24 @@ export const SearchIcon = ({ className }: { className?: string }) => (
   <I className={className}>
     <circle cx="10.5" cy="10.5" r="6" />
     <path d="m15.5 15.5 4.5 4.5" />
+  </I>
+);
+export const ImageIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <rect x="3.5" y="4.5" width="17" height="15" />
+    <circle cx="8.5" cy="9.5" r="1.6" />
+    <path d="m4.5 16.5 5-5 3.5 3.5 2.5-2.5 4.5 4.5" />
+  </I>
+);
+export const StarIcon = ({ className, filled = false }: { className?: string; filled?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="m12 4 2.4 5.1 5.6.7-4.1 3.9 1 5.6-4.9-2.7-4.9 2.7 1-5.6L4 9.8l5.6-.7Z" />
+  </svg>
+);
+export const UploadIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <path d="M12 15.5V4M8 8l4-4 4 4" />
+    <path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" />
   </I>
 );
 
@@ -333,17 +361,6 @@ export function BottleArt({ product, className = "" }: { product: Product; class
   );
 }
 
-/* ---------------- stat numeral ---------------- */
-
-export function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="py-5">
-      <p className="font-display text-3xl sm:text-4xl font-medium text-granite-900 leading-none">{value}</p>
-      <p className="kicker text-granite-500 mt-2">{label}</p>
-    </div>
-  );
-}
-
 /* ---------------- medal marquee row ---------------- */
 
 export function MedalRow() {
@@ -403,4 +420,47 @@ export function useMountStagger(count: number, step = 70) {
     return () => window.clearInterval(t);
   }, [count, step]);
   return shown;
+}
+
+/* ---------------- FAQ block (renders the same Q&A the schema declares) ---------------- */
+
+/**
+ * Native <details> so the answers are in the DOM whether or not they're open —
+ * a crawler and a screen reader both get the full text, and there's no JS
+ * between the question and the answer.
+ */
+export function FaqList({ faqs, className = "" }: { faqs: { q: string; a: string }[]; className?: string }) {
+  return (
+    <div className={`border-t-2 border-granite-900 ${className}`}>
+      {faqs.map((f) => (
+        <details key={f.q} className="group border-b-2 border-granite-900">
+          <summary className="flex items-start gap-4 cursor-pointer list-none py-5 min-h-[44px] hover:bg-granite-100/50 transition-colors px-1">
+            <h3 className="font-display text-lg sm:text-xl font-medium flex-1">{f.q}</h3>
+            <span className="mt-1 shrink-0 text-granite-500 transition-transform duration-300 group-open:rotate-45" aria-hidden="true">
+              <PlusIcon className="w-5 h-5" />
+            </span>
+          </summary>
+          <p className="pb-6 px-1 pr-10 text-granite-700 leading-relaxed max-w-3xl">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- quick facts strip (built to be quoted) ---------------- */
+
+export function FactGrid({ facts }: { facts: readonly { label: string; value: string; detail: string }[] }) {
+  return (
+    <dl className="grid sm:grid-cols-2 lg:grid-cols-3 border-l-2 border-t-2 border-granite-900">
+      {facts.map((f) => (
+        <div key={f.label} className="border-r-2 border-b-2 border-granite-900 p-5">
+          <dt className="kicker text-granite-500">{f.label}</dt>
+          <dd>
+            <span className="block font-display text-3xl font-medium mt-1.5">{f.value}</span>
+            <span className="block text-sm text-granite-700 mt-1.5">{f.detail}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
 }

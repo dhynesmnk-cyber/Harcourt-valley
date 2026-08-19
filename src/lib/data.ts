@@ -2,6 +2,8 @@
 /*  Harcourt Valley — data model, seed content, helpers                */
 /* ------------------------------------------------------------------ */
 
+import journalSeed from "../content/journal.json";
+
 export const IMG = {
   vines: "https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png",
   cellarDoor: "https://image.qwenlm.ai/generated-images/191b0224-3603-4641-9638-e86387ad18a6/_result.png",
@@ -43,6 +45,25 @@ export interface LeadNote {
 
 export type ProductType = "wine" | "beer" | "mead";
 
+/**
+ * Metadata for one uploaded product photo. The bytes live in IndexedDB under
+ * `id` (see lib/media.ts) — only this record goes into the persisted state, so
+ * the localStorage payload stays small no matter how many photos are added.
+ */
+export interface ProductImage {
+  /** Key into the IndexedDB blob store. */
+  id: string;
+  /** Alt text. Empty is allowed but flagged in the admin — it costs image search. */
+  alt: string;
+  width: number;
+  height: number;
+  /** Size after downscaling and re-encoding, in bytes. */
+  bytes: number;
+  /** Encoded MIME type, e.g. image/webp. */
+  type: string;
+  addedAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -55,6 +76,8 @@ export interface Product {
   description: string;
   featured: boolean;
   active: boolean;
+  /** Up to MAX_IMAGES_PER_PRODUCT photos. The first is the primary/hero shot. */
+  images: ProductImage[];
 }
 
 export interface CartLine {
@@ -134,6 +157,57 @@ export interface Ballpark {
   note: string;
 }
 
+/* A line that types itself out on the site. Leave `author` blank and it reads
+   as a feature; fill it in and it reads as a review. */
+export const TYPED_PAGES = ["home", "winery", "weddings", "events"] as const;
+export type TypedPage = (typeof TYPED_PAGES)[number];
+
+export const typedPageLabel: Record<TypedPage, string> = {
+  home: "Home page",
+  winery: "Winery",
+  weddings: "Weddings",
+  events: "Events",
+};
+
+export interface TypedLine {
+  id: string;
+  page: TypedPage;
+  text: string;
+  author: string;
+}
+
+/* ---------------- journal (blog) ---------------- */
+
+/**
+ * One journal post. Exactly one image per post, on purpose: it keeps the
+ * cards on the home page even, and it gives every post a single unambiguous
+ * `image` for the BlogPosting schema and the social card.
+ */
+export interface BlogPost {
+  id: string;
+  /** URL segment — /journal/<slug>. Lowercase, hyphens, no punctuation. */
+  slug: string;
+  title: string;
+  /** One or two sentences. Used as the meta description and the card blurb. */
+  excerpt: string;
+  /** Markdown-lite: blank-line paragraphs, "## " headings, "- " lists, "> " quotes. */
+  body: string;
+  category: string;
+  tags: string[];
+  author: string;
+  authorRole: string;
+  /** ISO date (YYYY-MM-DD). */
+  publishedAt: string;
+  updatedAt: string;
+  readMinutes: number;
+  featured: boolean;
+  published: boolean;
+  /** The single hero image for this post. */
+  image: string;
+  /** Alt text — required, because an image without it helps nobody. */
+  imageAlt: string;
+}
+
 export interface SiteConfig {
   heroHeadline: string;
   heroSub: string;
@@ -142,6 +216,7 @@ export interface SiteConfig {
   weddingBallparks: Ballpark[];
   eventBallparks: Ballpark[];
   inclusions: string[];
+  typedLines: TypedLine[];
   palette: "granite" | "orchard";
   displayFont: "fraunces" | "cormorant" | "marcellus";
 }
@@ -212,42 +287,42 @@ export function seedProducts(): Product[] {
   return [
     {
       id: "old-vine-shiraz-2019", name: "2019 Old Vine Shiraz", type: "wine", varietal: "Shiraz", vintage: "2019",
-      priceCents: 6000, stripePriceId: "price_HVoldvineshiraz19", stock: 60, featured: true, active: true,
+      priceCents: 6000, stripePriceId: "price_HVoldvineshiraz19", stock: 60, featured: true, active: true, images: [],
       description: "The old vines at Harcourt Valley Vineyards were planted in 1975 by Ray and Barbara Broughton who established the vineyards. The vines are the oldest in the Mount Alexander Shire and sit at the lowest part of the property making them lower yielding and slower ripening. The Old Vine wines are only made in years when the fruit is of an exceptional quality. Production is limited to 60 cases. The wines are given only the finest French oak ensuring well integrated oak flavours and a fine tannin structure the complements the length and intensity of the wine.",
     },
     {
       id: "cabernet-sauvignon", name: "Cabernet Sauvignon", type: "wine", varietal: "Cabernet Sauvignon", vintage: null,
-      priceCents: 2500, stripePriceId: "price_HVcabsauv", stock: 108, featured: true, active: true,
+      priceCents: 2500, stripePriceId: "price_HVcabsauv", stock: 108, featured: true, active: true, images: [],
       description: "Harcourt Valley Cabernet Sauvignon displays great lifted aromatics of black current, mint, with a hint of eucalypt. This medium to full bodied wine shows a blackcurrant and savoury herbaceous pallet with slightly bigger tannins providing a great mouth feel for this wine.",
     },
     {
       id: "chardonnay", name: "Chardonnay", type: "wine", varietal: "Chardonnay", vintage: null,
-      priceCents: 3000, stripePriceId: "price_HVchardonnay", stock: 108, featured: true, active: true,
+      priceCents: 3000, stripePriceId: "price_HVchardonnay", stock: 108, featured: true, active: true, images: [],
       description: "The Harcourt Valley Chardonnay is made in a lightly oaked style, seeing wood for only 6 weeks during fermentation and then transferred to tank for maturation before bottling. This fruit driven style of Chardonnay displays a light golden straw hue, a hint of French oak and citrus aromas. The palate shows peach and fig with a small amount of malolactic fermentation (around 20%) and the mouth feel is rich yet textural, followed by a clean dry finish. A wine that can be enjoyed now, always selling out before the next vintage is ready.",
     },
     {
       id: "ginger-kid-4-5", name: "Ginger Kid 4.5% - 24 x 330ml", type: "beer", varietal: "Ginger beer", vintage: null,
-      priceCents: 8000, stripePriceId: "price_HVgingerkid45", stock: 48, featured: false, active: true,
+      priceCents: 8000, stripePriceId: "price_HVgingerkid45", stock: 48, featured: false, active: true, images: [],
       description: "Around Harcourt Valley, the Ginger Kid is known for its kick. We don't dare over-sweeten it. The Ginger Kid simply is how it is - strong, bitey and varying with the seasons - just as nature intended. Refreshingly honest, the Ginger Kid has 4.5% alcohol, zero gluten and the ripsnorting zing of genuine Aussie ginger.",
     },
     {
       id: "ginger-kid-8", name: "Ginger Kid Extra Strong 8% - 24 x 330ml", type: "beer", varietal: "Ginger beer", vintage: null,
-      priceCents: 8000, stripePriceId: "price_HVgingerkid8", stock: 48, featured: false, active: true,
+      priceCents: 8000, stripePriceId: "price_HVgingerkid8", stock: 48, featured: false, active: true, images: [],
       description: "Around Harcourt Valley, the Ginger Kid is known for its kick. We don't dare over-sweeten it. The Ginger Kid simply is how it is - strong, bitey and varying with the seasons - just as nature intended. Refreshingly honest, the Ginger Kid has 8.0% alcohol, zero gluten and the ripsnorting zing of genuine Aussie ginger.",
     },
     {
       id: "riesling", name: "Riesling", type: "wine", varietal: "Riesling", vintage: null,
-      priceCents: 2000, stripePriceId: "price_HVriesling", stock: 108, featured: false, active: true,
+      priceCents: 2000, stripePriceId: "price_HVriesling", stock: 108, featured: false, active: true, images: [],
       description: "Harcourt Valley Riesling is made in an off dry style displaying lifted floral aromas, followed by a slightly sweet palate with hints of citrus (lime) and plenty of acidity to dry out the finish. This is a great wine to enjoy with spicy Asian dishes, cheese platters or on its own on a warm sunny day.",
     },
     {
       id: "rose", name: "Rosé", type: "wine", varietal: "Malbec Rosé", vintage: null,
-      priceCents: 2000, stripePriceId: "price_HVrose", stock: 108, featured: true, active: true,
+      priceCents: 2000, stripePriceId: "price_HVrose", stock: 108, featured: true, active: true, images: [],
       description: "Made from a small parcel of Malbec grown at Harcourt Valley Vineyards. A wine that can be enjoyed now, always selling out before the next vintage is ready.",
     },
     {
       id: "sparkling-rose", name: "Sparkling Rosè", type: "wine", varietal: "Sparkling Rosé", vintage: "NV",
-      priceCents: 2000, stripePriceId: "price_HVsparklingrose", stock: 108, featured: false, active: true,
+      priceCents: 2000, stripePriceId: "price_HVsparklingrose", stock: 108, featured: false, active: true, images: [],
       description: "A pale pink colour with fresh fruity aromas. Displaying sweetness on the mid palate with a fresh clean finish. Perfect for a hot summer's day.",
     },
   ];
@@ -413,6 +488,29 @@ export function seedOutbox(): OutboxItem[] {
   ];
 }
 
+export function seedTypedLines(): TypedLine[] {
+  return [
+    { id: "tl-h1", page: "home", text: "Five hundred medals, and they still pour it themselves.", author: "Halliday Wine Companion" },
+    { id: "tl-h2", page: "home", text: "We drove ninety minutes for lunch and stayed until the light went.", author: "Priya R., Melbourne" },
+    { id: "tl-h3", page: "home", text: "Grown, made and bottled within a five-minute walk of the bar.", author: "" },
+    { id: "tl-h4", page: "home", text: "The oldest vineyard in the shire, planted 1874 and still cropping.", author: "" },
+
+    { id: "tl-wi1", page: "winery", text: "The Shiraz tastes like the hill it came off — I mean that as a compliment.", author: "Bendigo Wine Show judge" },
+    { id: "tl-wi2", page: "winery", text: "Tom opened four bottles and talked us through every one. No rush, no script.", author: "Daniel & Mia H." },
+    { id: "tl-wi3", page: "winery", text: "Six bottles or more and the freight is on us.", author: "" },
+    { id: "tl-wi4", page: "winery", text: "Wine from the blocks out front, beer from the orchard, mead from the hives.", author: "" },
+
+    { id: "tl-we1", page: "weddings", text: "One wedding a day. The whole property was ours until midnight.", author: "Jess & Tom O'Neill" },
+    { id: "tl-we2", page: "weddings", text: "It rained. The shed was so good nobody minded, least of all us.", author: "Eliza & Mia" },
+    { id: "tl-we3", page: "weddings", text: "120 seated, 180 standing, 140 ceremony chairs set and packed away.", author: "" },
+    { id: "tl-we4", page: "weddings", text: "A tasting for two before the day, always on us.", author: "" },
+
+    { id: "tl-ev1", page: "events", text: "Forty of us down one long table, five courses, a pour with each.", author: "Marcus C., Fieldwork Coffee" },
+    { id: "tl-ev2", page: "events", text: "They set up, they packed down, and the festoon lights did the rest.", author: "Anna C." },
+    { id: "tl-ev3", page: "events", text: "Power, sound, trestles and lights included — bring the people.", author: "" },
+  ];
+}
+
 export function seedConfig(): SiteConfig {
   return {
     heroHeadline: "Award-winning wine, grown on granite.",
@@ -441,7 +539,100 @@ export function seedConfig(): SiteConfig {
       "Our coordinator on-site from bump-in to last dance",
       "Parking for 60 cars, and taxis know the way",
     ],
+    typedLines: seedTypedLines(),
     palette: "granite",
     displayFont: "fraunces",
   };
+}
+
+/* ---------------- journal helpers ---------------- */
+
+export function seedPosts(): BlogPost[] {
+  return (journalSeed as BlogPost[]).map((p) => ({ ...p, tags: [...p.tags] }));
+}
+
+/** Turns a title into a URL-safe slug. */
+export function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['\u2019]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+}
+
+/** Rough reading time, rounded up, minimum one minute. */
+export function readingMinutes(body: string): number {
+  const words = body.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+export type BodyBlock =
+  | { kind: "h2"; text: string }
+  | { kind: "h3"; text: string }
+  | { kind: "p"; text: string }
+  | { kind: "quote"; text: string }
+  | { kind: "list"; items: string[] };
+
+/**
+ * Markdown-lite parser. Deliberately tiny: the admin editor is one textarea,
+ * and the only structure we need is headings, paragraphs, lists and quotes —
+ * which is also all the structure a crawler wants out of an article.
+ */
+export function parseBody(body: string): BodyBlock[] {
+  const blocks: BodyBlock[] = [];
+  const chunks = body.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  for (const raw of chunks) {
+    const chunk = raw.trim();
+    if (!chunk) continue;
+    const lines = chunk.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.every((l) => l.startsWith("- "))) {
+      blocks.push({ kind: "list", items: lines.map((l) => l.slice(2).trim()) });
+      continue;
+    }
+    for (const line of lines) {
+      if (line.startsWith("### ")) blocks.push({ kind: "h3", text: line.slice(4).trim() });
+      else if (line.startsWith("## ")) blocks.push({ kind: "h2", text: line.slice(3).trim() });
+      else if (line.startsWith("> ")) blocks.push({ kind: "quote", text: line.slice(2).trim() });
+      else if (line.startsWith("- ")) blocks.push({ kind: "list", items: [line.slice(2).trim()] });
+      else {
+        const prev = blocks[blocks.length - 1];
+        if (prev && prev.kind === "p") prev.text += " " + line;
+        else blocks.push({ kind: "p", text: line });
+      }
+    }
+  }
+  return blocks;
+}
+
+/** Plain-text version of a post body — for JSON-LD articleBody and llms.txt. */
+export function bodyToText(body: string): string {
+  return parseBody(body)
+    .map((b) => (b.kind === "list" ? b.items.join(" ") : b.text))
+    .join(" ");
+}
+
+export function fmtPostDate(s: string): string {
+  const d = new Date(s.length <= 10 ? s + "T12:00:00" : s);
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Published posts, newest first. The only list the public site should render. */
+export function publishedPosts(posts: BlogPost[]): BlogPost[] {
+  return posts
+    .filter((p) => p.published)
+    .slice()
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : a.publishedAt > b.publishedAt ? -1 : 0));
+}
+
+/** The photo shown on a card, or null when the product has none yet. */
+export function primaryImage(p: Product): ProductImage | null {
+  return p.images?.[0] ?? null;
+}
+
+/** Every image id referenced by any product — used to prune orphaned blobs. */
+export function referencedImageIds(products: Product[]): string[] {
+  return products.flatMap((p) => (p.images ?? []).map((i) => i.id));
 }

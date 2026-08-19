@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { fmtDate, money, timeAgo, type Product, type TradeOrder } from "../../lib/data";
+import { fmtDate, money, primaryImage, timeAgo, type Product, type TradeOrder } from "../../lib/data";
 import { useStore } from "../../lib/store";
+import { useStoredImage } from "../../lib/media";
 import { EmptyState, FieldSelect, FieldText, PlusIcon, Tick } from "../../components/ui";
+import { PhotosToggle, ProductPhotosPanel } from "../../components/admin/ProductPhotos";
 
 /* ================= Trade inbox ================= */
 
@@ -116,10 +118,21 @@ export function TradeInboxView() {
 
 /* ================= Shop & stock manager ================= */
 
+function ProductThumb({ product }: { product: Product }) {
+  const img = primaryImage(product);
+  const url = useStoredImage(img?.id);
+  return (
+    <div className="hidden sm:grid shrink-0 w-11 h-11 place-items-center bg-granite-100 border-2 border-granite-900 overflow-hidden">
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <span className="font-display italic text-[0.6rem] text-granite-500">HV</span>}
+    </div>
+  );
+}
+
 function ProductRow({ product }: { product: Product }) {
   const { updateProduct, toast } = useStore();
   const [price, setPrice] = useState((product.priceCents / 100).toFixed(2));
   const [stock, setStock] = useState(String(product.stock));
+  const [photosOpen, setPhotosOpen] = useState(false);
   const dirty = price !== (product.priceCents / 100).toFixed(2) || stock !== String(product.stock);
 
   const save = () => {
@@ -132,54 +145,61 @@ function ProductRow({ product }: { product: Product }) {
   const stockN = parseInt(stock, 10) || 0;
 
   return (
-    <li className="grid grid-cols-2 md:grid-cols-[1.4fr_0.6fr_0.7fr_0.6fr_1fr_auto] gap-3 md:gap-4 items-end px-5 py-4">
-      <div className="col-span-2 md:col-span-1">
-        <p className="font-label font-semibold text-sm">
-          {product.name} {product.vintage ?? ""}
-        </p>
-        <p className="text-xs text-granite-500 mt-0.5">
-          {product.type} · Stripe ID <span className="font-mono">{product.stripePriceId.slice(0, 9)}•••</span>
-        </p>
+    <li>
+      <div className="grid grid-cols-2 md:grid-cols-[auto_1.4fr_0.6fr_0.7fr_0.6fr_1fr_auto] gap-3 md:gap-4 items-end px-5 py-4">
+        <div className="hidden md:flex items-end pb-1.5">
+          <ProductThumb product={product} />
+        </div>
+        <div className="col-span-2 md:col-span-1">
+          <p className="font-label font-semibold text-sm">
+            {product.name} {product.vintage ?? ""}
+          </p>
+          <p className="text-xs text-granite-500 mt-0.5">
+            {product.type} · Stripe ID <span className="font-mono">{product.stripePriceId.slice(0, 9)}•••</span>
+          </p>
+        </div>
+        <div>
+          <label className="field-label" htmlFor={`pr-${product.id}`}>
+            Price ($)
+          </label>
+          <input id={`pr-${product.id}`} className="field-input" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+        <div>
+          <label className="field-label" htmlFor={`st-${product.id}`}>
+            Stock
+          </label>
+          <input
+            id={`st-${product.id}`}
+            className={`field-input font-label font-semibold ${stockN === 0 ? "text-garnet" : stockN <= 15 ? "text-ochre" : ""}`}
+            inputMode="numeric"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+          />
+        </div>
+        <div className="hidden md:block">
+          <p className="field-label">Status</p>
+          <span className={`inline-block text-[0.66rem] font-label font-bold uppercase tracking-[0.08em] px-2 py-1.5 border ${product.active ? "border-vine text-vine" : "border-granite-500 text-granite-500"}`}>
+            {product.active ? "On sale" : "Hidden"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2 col-span-2 md:col-span-2">
+          <button type="button" className="btn btn-primary btn-sm flex-1 md:flex-none" disabled={!dirty} onClick={save}>
+            {dirty ? "Save" : "Saved"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              updateProduct(product.id, { active: !product.active });
+              toast(product.active ? `${product.name} hidden from the shop.` : `${product.name} back on the shelf.`);
+            }}
+          >
+            {product.active ? "Hide" : "Show"}
+          </button>
+          <PhotosToggle product={product} open={photosOpen} onToggle={() => setPhotosOpen((o) => !o)} />
+        </div>
       </div>
-      <div>
-        <label className="field-label" htmlFor={`pr-${product.id}`}>
-          Price ($)
-        </label>
-        <input id={`pr-${product.id}`} className="field-input" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
-      </div>
-      <div>
-        <label className="field-label" htmlFor={`st-${product.id}`}>
-          Stock
-        </label>
-        <input
-          id={`st-${product.id}`}
-          className={`field-input font-label font-semibold ${stockN === 0 ? "text-garnet" : stockN <= 15 ? "text-ochre" : ""}`}
-          inputMode="numeric"
-          value={stock}
-          onChange={(e) => setStock(e.target.value)}
-        />
-      </div>
-      <div className="hidden md:block">
-        <p className="field-label">Status</p>
-        <span className={`inline-block text-[0.66rem] font-label font-bold uppercase tracking-[0.08em] px-2 py-1.5 border ${product.active ? "border-vine text-vine" : "border-granite-500 text-granite-500"}`}>
-          {product.active ? "On sale" : "Hidden"}
-        </span>
-      </div>
-      <div className="flex gap-2 col-span-2 md:col-span-2">
-        <button type="button" className="btn btn-primary btn-sm flex-1 md:flex-none" disabled={!dirty} onClick={save}>
-          {dirty ? "Save" : "Saved"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
-          onClick={() => {
-            updateProduct(product.id, { active: !product.active });
-            toast(product.active ? `${product.name} hidden from the shop.` : `${product.name} back on the shelf.`);
-          }}
-        >
-          {product.active ? "Hide" : "Show"}
-        </button>
-      </div>
+      {photosOpen ? <ProductPhotosPanel product={product} /> : null}
     </li>
   );
 }
@@ -289,7 +309,8 @@ export function ShopManagerView() {
 
       <div className="mt-7 border-2 border-granite-900 bg-bone overflow-x-auto thin-scroll">
         <div className="min-w-[760px]">
-          <div className="grid md:grid-cols-[1.4fr_0.6fr_0.7fr_0.6fr_1fr_auto] gap-4 px-5 py-3 border-b-2 border-granite-900 bg-granite-100/60">
+          <div className="grid md:grid-cols-[auto_1.4fr_0.6fr_0.7fr_0.6fr_1fr_auto] gap-4 px-5 py-3 border-b-2 border-granite-900 bg-granite-100/60">
+            <p className="kicker text-granite-500 hidden md:block">&nbsp;</p>
             <p className="kicker text-granite-500">Product</p>
             <p className="kicker text-granite-500">Price</p>
             <p className="kicker text-granite-500">Stock</p>

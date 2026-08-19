@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://www.harcourtvalley.com.au/</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/winery</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/weddings</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/events</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/winery/trade</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/why-granite-soil-changes-central-victorian-shiraz</loc>
+    <lastmod>2026-07-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/f6170caa-669e-442a-b93f-6328f8d283dd/_result.png</image:loc>
+      <image:title>Why granite soil changes the taste of Central Victorian Shiraz</image:title>
+      <image:caption>Vine rows on decomposed granite soil running toward the Harcourt hills at golden hour</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/what-a-vineyard-wedding-costs-in-victoria</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/da7db9f7-6904-4826-9e5d-6164e17a320f/_result.png</image:loc>
+      <image:title>What a vineyard wedding actually costs in Victoria</image:title>
+      <image:caption>Wedding ceremony chairs set in an aisle between vine rows with granite hills behind</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/one-day-in-the-bendigo-wine-region</loc>
+    <lastmod>2026-06-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/9650ed38-0786-4672-83da-1dc72fd48f36/_result.png</image:loc>
+      <image:title>One day in the Bendigo wine region: a plan that actually works</image:title>
+      <image:caption>Granite boulders and river red gums on the hillside above the Harcourt vineyard</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/how-to-plan-a-long-table-dinner</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/d6af84d7-34e5-450b-92f7-28f379ac2fd0/_result.png</image:loc>
+      <image:title>How to plan a long-table dinner that doesn't feel like a function</image:title>
+      <image:caption>A single long banquet table dressed with linen and festoon lights inside the function shed</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/cellar-door-etiquette-small-family-winery</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/191b0224-3603-4641-9638-e86387ad18a6/_result.png</image:loc>
+      <image:title>Cellar door etiquette at a small family winery</image:title>
+      <image:caption>Red wine being poured into a glass at the timber cellar door bar</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.harcourtvalley.com.au/journal/vintage-2026-report-oldest-vines-mount-alexander</loc>
+    <lastmod>2026-04-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <image:image>
+      <image:loc>https://image.qwenlm.ai/generated-images/8d3f6066-7f41-458e-a7a9-a9c47185b529/_result.png</image:loc>
+      <image:title>Vintage 2026: a report from the oldest vines in the shire</image:title>
+      <image:caption>French oak barrels resting in the cool granite cellar at Harcourt Valley</image:caption>
+    </image:image>
+  </url>
+</urlset>

@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "seo": "node scripts/generate-seo-assets.mjs",
+    "prebuild": "node scripts/generate-seo-assets.mjs",
     "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
