@@ -176,6 +176,24 @@ export const SearchIcon = ({ className }: { className?: string }) => (
     <path d="m15.5 15.5 4.5 4.5" />
   </I>
 );
+export const ImageIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <rect x="3.5" y="4.5" width="17" height="15" />
+    <circle cx="8.5" cy="9.5" r="1.6" />
+    <path d="m4.5 16.5 5-5 3.5 3.5 2.5-2.5 4.5 4.5" />
+  </I>
+);
+export const StarIcon = ({ className, filled = false }: { className?: string; filled?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+    <path d="m12 4 2.4 5.1 5.6.7-4.1 3.9 1 5.6-4.9-2.7-4.9 2.7 1-5.6L4 9.8l5.6-.7Z" />
+  </svg>
+);
+export const UploadIcon = ({ className }: { className?: string }) => (
+  <I className={className}>
+    <path d="M12 15.5V4M8 8l4-4 4 4" />
+    <path d="M4.5 15.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3" />
+  </I>
+);
 
 /* ---------------- type chip ---------------- */
 

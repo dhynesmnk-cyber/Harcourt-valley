@@ -4,6 +4,7 @@ import { IMG, money, type Product, type ProductType } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
 import { ArrowRight, BottleArt, CloseIcon, ContourDivider, FaqList, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
+import { ProductCardImage, ProductGallery } from "../components/product";
 import { WINERY_FAQS } from "../lib/faqs";
 import { breadcrumbSchema, faqSchema, useSeo, webPageSchema } from "../lib/seo";
 import { BUSINESS, absUrl } from "../lib/site";
@@ -41,9 +42,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
       <button type="button" aria-label="Close product details" onClick={onClose} className="absolute inset-0 bg-granite-900/60 fade-in cursor-default" />
       <div className="rise-in relative bg-bone border-2 border-granite-900 shadow-hard w-full max-w-2xl grid sm:grid-cols-[240px_1fr] max-h-[90svh] overflow-y-auto thin-scroll" role="dialog" aria-modal="true" aria-label={product.name}>
-        <div className="bg-granite-100 border-b-2 sm:border-b-0 sm:border-r-2 border-granite-900 grid place-items-center py-8 sm:py-0">
-          <BottleArt product={product} className="h-56 sm:h-72 w-auto img-in" />
-        </div>
+        <ProductGallery product={product} />
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -217,8 +216,8 @@ export default function Winery() {
               <Reveal key={p.id} delay={(i % 4) * 80}>
                 <article className="group border-2 border-granite-900 bg-bone flex flex-col lux-card">
                   <button type="button" onClick={() => setSelectedId(p.id)} className="text-left w-full cursor-pointer">
-                    <div className="bg-granite-100/80 border-b-2 border-granite-900 grid place-items-center py-7 overflow-hidden">
-                      <BottleArt product={p} className="h-48 w-auto transition-transform duration-500 group-hover:-translate-y-1.5" />
+                    <div className="bg-granite-100/80 border-b-2 border-granite-900 h-56 overflow-hidden">
+                      <ProductCardImage product={p} />
                     </div>
                     <div className="p-5">
                       <p className="kicker text-granite-500">

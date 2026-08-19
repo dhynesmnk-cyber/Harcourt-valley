@@ -95,6 +95,32 @@ is ticked.
 Seed posts are in `src/content/journal.json`, shared with the SEO generator so
 the two can't drift.
 
+## Product photos
+
+Each product in the shop takes up to **4 photos**, managed at `/admin` →
+**Shop & stock** → **Photos** on any product row. Pick files, or drag them onto
+the panel; the first photo is the one shown on the shelf and in social/search
+previews, and can be changed with **Make cover** or the reorder arrows on each
+thumbnail. Every photo needs a short description (alt text) — the panel flags
+any that don't have one.
+
+Uploads are downscaled and re-encoded to WebP in the browser (longest edge
+1600px, `src/lib/media.ts`) before being stored, so a 6MB phone photo lands
+around 100–200KB. The encoded bytes live in the browser's **IndexedDB**, not
+localStorage: localStorage holds the whole app state as one string against a
+~5MB quota, and four photos per product across the catalogue would blow that
+instantly — with `setItem()` throwing and taking leads, orders and everything
+else in the store down with it. Only each photo's metadata (an id, alt text,
+dimensions) goes into the state that persists to localStorage.
+
+This means **product photos are local to the browser that uploaded them** —
+they don't sync across devices and, unlike the rest of the demo persistence
+layer, they can never be crawled by a search engine, because there's no server
+to serve them from. Moving to Supabase (per `ARCHITECTURE.md`) means swapping
+`putImage`/`getImageBlob` in `src/lib/media.ts` for calls to Supabase Storage,
+after which product photos become real, indexable URLs like everything else.
+"Reset demo data" clears stored photos along with the rest of the seed data.
+
 ## Admin access
 
 `/admin` → type the passcode.

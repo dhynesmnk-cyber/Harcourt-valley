@@ -1,13 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bee23Profile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
-  Sequence, SequenceStep, SiteConfig, TradeOrder,
-  IMG,
+  ProductImage, Sequence, SequenceStep, SiteConfig, TradeOrder,
+  IMG, referencedImageIds,
   DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
   seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
 import { isRemote, supabase } from "./supabase";
 import { hydrate, syncState } from "./remote";
+import { MAX_IMAGES_PER_PRODUCT, clearImages, deleteImages, prepareImage, pruneOrphans, putImage } from "./media";
 
 interface StoreState {
   products: Product[];
@@ -89,6 +90,13 @@ interface StoreValue extends StoreState {
   fulfillTradeOrder: (id: string) => void;
   updateProduct: (id: string, patch: Partial<Product>) => void;
   addProduct: (p: { name: string; type: Product["type"]; varietal: string; vintage: string | null; priceCents: number; stock: number; description: string }) => void;
+  /** Uploads picked files into the product gallery. Resolves with per-file failures rather than throwing. */
+  addProductImages: (productId: string, files: File[]) => Promise<{ added: number; errors: string[] }>;
+  removeProductImage: (productId: string, imageId: string) => void;
+  /** Moves an image to the front, making it the card/hero shot. */
+  setPrimaryImage: (productId: string, imageId: string) => void;
+  moveProductImage: (productId: string, imageId: string, direction: -1 | 1) => void;
+  updateImageAlt: (productId: string, imageId: string, alt: string) => void;
   updateSequence: (id: string, steps: SequenceStep[]) => void;
   toggleSequence: (id: string) => void;
   updateConfig: (patch: Partial<SiteConfig>) => void;
@@ -183,6 +191,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /* addProductImages is async and can run for seconds while files decode, so it
+     reads the live state through a ref rather than closing over a stale copy. */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
@@ -200,6 +215,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   useEffect(() => () => window.clearTimeout(pending.current), []);
+
+  /* Once per session, drop any stored blob no product still points at — e.g.
+     photos belonging to a product deleted in another tab. */
+  useEffect(() => {
+    void pruneOrphans(referencedImageIds(stateRef.current.products));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("hv-cart-v1", JSON.stringify(cart));
@@ -343,12 +365,100 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         stripePriceId: "price_demo_" + uid(),
         featured: false,
         active: true,
+        images: [],
         ...p,
       };
       setState((s) => ({ ...s, products: [product, ...s.products] }));
     },
     [],
   );
+
+  /* ---------- product photos ---------- */
+
+  const addProductImages = useCallback(
+    async (productId: string, files: File[]): Promise<{ added: number; errors: string[] }> => {
+      const product = stateRef.current.products.find((p) => p.id === productId);
+      if (!product) return { added: 0, errors: ["That product no longer exists."] };
+
+      const room = MAX_IMAGES_PER_PRODUCT - (product.images?.length ?? 0);
+      const errors: string[] = [];
+      if (room <= 0) return { added: 0, errors: [`${product.name} already has ${MAX_IMAGES_PER_PRODUCT} photos — remove one first.`] };
+      if (files.length > room) errors.push(`Only ${room} slot${room === 1 ? "" : "s"} left, so the first ${room} were used.`);
+
+      const accepted: ProductImage[] = [];
+      for (const file of files.slice(0, room)) {
+        try {
+          const prepared = await prepareImage(file);
+          const id = uid();
+          await putImage(id, prepared.blob);
+          accepted.push({
+            id,
+            alt: "",
+            width: prepared.width,
+            height: prepared.height,
+            bytes: prepared.blob.size,
+            type: prepared.type,
+            addedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          errors.push(e instanceof Error ? e.message : `"${file.name}" couldn't be added.`);
+        }
+      }
+
+      if (accepted.length > 0) {
+        setState((s) => ({
+          ...s,
+          products: s.products.map((p) => (p.id === productId ? { ...p, images: [...(p.images ?? []), ...accepted].slice(0, MAX_IMAGES_PER_PRODUCT) } : p)),
+        }));
+      }
+      return { added: accepted.length, errors };
+    },
+    [],
+  );
+
+  const removeProductImage = useCallback((productId: string, imageId: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === productId ? { ...p, images: (p.images ?? []).filter((i) => i.id !== imageId) } : p)),
+    }));
+    void deleteImages([imageId]);
+  }, []);
+
+  const setPrimaryImage = useCallback((productId: string, imageId: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id !== productId) return p;
+        const target = (p.images ?? []).find((i) => i.id === imageId);
+        if (!target) return p;
+        return { ...p, images: [target, ...(p.images ?? []).filter((i) => i.id !== imageId)] };
+      }),
+    }));
+  }, []);
+
+  const moveProductImage = useCallback((productId: string, imageId: string, direction: -1 | 1) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id !== productId) return p;
+        const images = [...(p.images ?? [])];
+        const from = images.findIndex((i) => i.id === imageId);
+        const to = from + direction;
+        if (from < 0 || to < 0 || to >= images.length) return p;
+        [images[from], images[to]] = [images[to], images[from]];
+        return { ...p, images };
+      }),
+    }));
+  }, []);
+
+  const updateImageAlt = useCallback((productId: string, imageId: string, alt: string) => {
+    setState((s) => ({
+      ...s,
+      products: s.products.map((p) =>
+        p.id === productId ? { ...p, images: (p.images ?? []).map((i) => (i.id === imageId ? { ...i, alt } : i)) } : p,
+      ),
+    }));
+  }, []);
 
   /* ---------- sequences / email ---------- */
 
@@ -446,6 +556,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (isRemote) return false;
     setState(freshState());
     setCart([]);
+    /* The seed has no photos, so every stored blob is now unreferenced. */
+    void clearImages();
     return true;
   }, []);
 
@@ -488,6 +600,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     fulfillTradeOrder,
     updateProduct,
     addProduct,
+    addProductImages,
+    removeProductImage,
+    setPrimaryImage,
+    moveProductImage,
+    updateImageAlt,
     updateSequence,
     toggleSequence,
     updateConfig,
