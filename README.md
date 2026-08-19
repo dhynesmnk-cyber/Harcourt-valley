@@ -3,8 +3,11 @@
 Single-page marketing site + admin command center for Harcourt Valley Vineyards.
 Built with **Vite + React + TypeScript + Tailwind CSS v4**. Routing is hash-based
 (`/#/winery`, `/#/weddings`, `/#/events`, `/#/admin`), so it deploys to any static
-host with zero server configuration. All data persists in the browser via
-localStorage (demo persistence layer — swap for Supabase per `ARCHITECTURE.md`).
+host with zero server configuration.
+
+Data persists to **Supabase** when `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` are set, and falls back to browser localStorage when
+they aren't — see `BACKEND.md`.
 
 ## Local development
 
@@ -49,6 +52,12 @@ pipeline.
 
 ## Admin access
 
-`/#/admin` → "Email me a sign-in link" → any email address signs you in
-(demo auth; production wiring is Supabase magic links per `ARCHITECTURE.md`).
-Use "Reset demo data" in the sidebar to reseed sample leads, orders and emails.
+`/#/admin` → type the passcode.
+
+With a backend configured the code is checked server-side and exchanged for a
+Supabase session; **9876** is the default, set as a function secret. With no
+backend configured the app is in demo mode and any code opens the office —
+changes then live in that browser only, and "Reset demo data" reseeds them.
+
+See **`BACKEND.md`** for how persistence works, how to set it up, and what the
+design deliberately doesn't do.

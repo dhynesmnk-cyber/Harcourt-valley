@@ -105,9 +105,9 @@ export function Header() {
             </button>
           </div>
           <nav className="flex-1 flex flex-col justify-center px-8 gap-2" aria-label="Mobile">
-            {[{ to: "/", label: "Home", i: "00" }, ...NAV.map((n, i) => ({ ...n, i: `0${i + 1}` }))].map((n, idx) => (
+            {[{ to: "/", label: "Home" }, ...NAV].map((n, idx) => (
               <Link key={n.to} to={n.to} className="rise-in group flex items-baseline gap-4 py-2 border-b border-granite-700" style={{ animationDelay: `${idx * 70}ms` }}>
-                <span className="kicker text-granite-500">{n.i}</span>
+                <span className="block w-8 h-[2px] self-center bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
                 <span className="font-display text-4xl sm:text-5xl font-medium group-hover:italic group-hover:text-ochre transition-colors">{n.label}</span>
                 <ArrowRight className="w-6 h-6 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
               </Link>

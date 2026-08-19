@@ -28,14 +28,17 @@ function Shell() {
       <ScrollToTop />
       <Header />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/winery" element={<Winery />} />
-          <Route path="/winery/trade" element={<Trade />} />
-          <Route path="/weddings" element={<Weddings />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        {/* Keyed on the path so each page settles in rather than snapping. */}
+        <div key={location.pathname} className="page-in">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/winery" element={<Winery />} />
+            <Route path="/winery/trade" element={<Trade />} />
+            <Route path="/weddings" element={<Weddings />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </main>
       <Footer />
       <CartDrawer />

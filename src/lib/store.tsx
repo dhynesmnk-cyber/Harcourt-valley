@@ -5,6 +5,8 @@ import {
   DAY, dstr, iso, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedProducts,
   seedProfiles, seedSequences, seedSends, seedTradeOrders, uid,
 } from "./data";
+import { isRemote, supabase } from "./supabase";
+import { hydrate, syncState } from "./remote";
 
 interface StoreState {
   products: Product[];
@@ -41,7 +43,11 @@ function loadState(): StoreState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as StoreState;
-      if (parsed && parsed.config && parsed.products) return parsed;
+      if (parsed && parsed.config && parsed.products) {
+        // State saved before a config field existed would arrive without it, so
+        // seed defaults fill the gaps rather than reaching the site as undefined.
+        return { ...parsed, config: { ...seedConfig(), ...parsed.config } };
+      }
     }
   } catch {
     /* fall through to seed */
@@ -54,7 +60,11 @@ export interface Toast {
   msg: string;
 }
 
+/** `local` = no backend configured; `offline` = configured but unreachable. */
+export type BackendStatus = "local" | "connecting" | "live" | "offline";
+
 interface StoreValue extends StoreState {
+  backend: BackendStatus;
   toasts: Toast[];
   toast: (msg: string) => void;
   cart: CartLine[];
@@ -77,7 +87,8 @@ interface StoreValue extends StoreState {
   updateSequence: (id: string, steps: SequenceStep[]) => void;
   toggleSequence: (id: string) => void;
   updateConfig: (patch: Partial<SiteConfig>) => void;
-  resetDemo: () => void;
+  /** False when refused because a live backend makes reseeding destructive. */
+  resetDemo: () => boolean;
   sendDueEmails: () => number;
   dueEmails: EmailSend[];
   addProfile: (p: Omit<Bee23Profile, "id">) => void;
@@ -101,9 +112,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastTimers = useRef<number[]>([]);
 
+  /* ---------- backend ----------
+     With no env vars `isRemote` is false and everything below is inert, so the
+     app behaves exactly as it did on localStorage alone. With a backend
+     configured, we load from Postgres once and then mirror each change. */
+
+  const [backend, setBackend] = useState<BackendStatus>(isRemote ? "connecting" : "local");
+  // What the server is believed to hold. Diffing against this is what keeps
+  // writes down to the rows that actually moved.
+  const synced = useRef<StoreState | null>(null);
+  const pending = useRef<number | undefined>(undefined);
+  // Held in a ref as well as state: the sync effect needs the current value
+  // without re-running the whole push every time a session refreshes.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminRef = useRef(false);
+  adminRef.current = isAdmin;
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => setIsAdmin(Boolean(data.session)));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setIsAdmin(Boolean(session)));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isRemote) return;
+    let live = true;
+    hydrate()
+      .then((remote) => {
+        if (!live) return;
+        if (!remote) {
+          setBackend("offline");
+          return;
+        }
+        // The public site is only allowed to read products and config, so an
+        // empty admin table there means "not permitted", not "deleted" — keep
+        // whatever is already local rather than wiping it.
+        setState((s) => {
+          const merged: StoreState = {
+            products: remote.products.length ? remote.products : s.products,
+            leads: remote.leads.length ? remote.leads : s.leads,
+            notes: remote.notes.length ? remote.notes : s.notes,
+            orders: remote.orders.length ? remote.orders : s.orders,
+            tradeOrders: remote.tradeOrders.length ? remote.tradeOrders : s.tradeOrders,
+            sequences: remote.sequences.length ? remote.sequences : s.sequences,
+            sends: remote.sends.length ? remote.sends : s.sends,
+            profiles: remote.profiles.length ? remote.profiles : s.profiles,
+            outbox: remote.outbox.length ? remote.outbox : s.outbox,
+            config: remote.config,
+          };
+          synced.current = merged;
+          return merged;
+        });
+        setBackend("live");
+      })
+      .catch(() => live && setBackend("offline"));
+    return () => {
+      live = false;
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // Push the difference, debounced so a burst of keystrokes is one write.
+    if (!isRemote || synced.current === null) return;
+    window.clearTimeout(pending.current);
+    pending.current = window.setTimeout(() => {
+      const before = synced.current;
+      if (!before) return;
+      syncState(before, state, adminRef.current).then((errors) => {
+        if (errors.length > 0) console.warn("Some changes did not reach the backend:", errors);
+        synced.current = state;
+      });
+    }, 600);
   }, [state]);
+
+  useEffect(() => () => window.clearTimeout(pending.current), []);
 
   useEffect(() => {
     localStorage.setItem("hv-cart-v1", JSON.stringify(cart));
@@ -294,9 +379,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, config: { ...s.config, ...patch } }));
   }, []);
 
-  const resetDemo = useCallback(() => {
+  /**
+   * Reseeds the demo. Refused outright once a backend is live: the diff sync
+   * would read a wholesale swap as "delete every row" and take the real
+   * enquiries, orders and website copy with it. Reseeding is a demo affordance,
+   * not something that should exist next to live customer records.
+   */
+  const resetDemo = useCallback((): boolean => {
+    if (isRemote) return false;
     setState(freshState());
     setCart([]);
+    return true;
   }, []);
 
   /* ---------- outreach ---------- */
@@ -318,6 +411,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreValue = {
     ...state,
+    backend,
     toasts,
     toast,
     cart,

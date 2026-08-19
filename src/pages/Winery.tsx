@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { IMG, money, type Product, type ProductType } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
-import { ArrowRight, BottleArt, CloseIcon, ContourDivider, MedalRow, MinusIcon, Reveal, SectionHead, Stat, Tick } from "../components/ui";
+import { ArrowRight, BottleArt, CloseIcon, ContourDivider, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
+import { TypedLines } from "../components/TypedLines";
 
 const FILTERS: { value: "all" | ProductType; label: string }[] = [
   { value: "all", label: "Everything" },
@@ -103,14 +104,13 @@ export default function Winery() {
       {/* Intro */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16">
         <SectionHead
-          index="01"
           kicker="The winery"
           title={<>Bendigo's most-awarded winery.</>}
           lead="500+ show medals, a 5-star Halliday rating, and the oldest vineyard in the shire — still family-run, still poured by the people who grew it."
         />
         <div className="mt-10 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
-            <div className="img-frame border-2 border-granite-900 shadow-hard">
+            <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
               <img src={IMG.barrels} alt="Oak barrels resting in the granite cellar" className="w-full h-[280px] sm:h-[380px] object-cover img-in" />
             </div>
           </Reveal>
@@ -126,16 +126,8 @@ export default function Winery() {
               </p>
               <p className="font-display italic text-xl text-granite-900">"If we wouldn't pour it at our own table, it doesn't get a label." — Tom</p>
             </div>
-            <div className="mt-8 grid grid-cols-3 divide-x-2 divide-granite-300 border-y-2 border-granite-300">
-              <div className="pr-4">
-                <Stat value="500+" label="Medals" />
-              </div>
-              <div className="px-4">
-                <Stat value="5★" label="Halliday" />
-              </div>
-              <div className="pl-4">
-                <Stat value="1874" label="First planted" />
-              </div>
+            <div className="mt-8 border-t-2 border-granite-300 pt-7">
+              <TypedLines page="winery" />
             </div>
           </Reveal>
         </div>
@@ -147,7 +139,7 @@ export default function Winery() {
 
       {/* Shop */}
       <section id="shop" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <SectionHead index="02" kicker="The shelf" title={<>Take some home.</>} lead="Six or more bottles and freight's on us. Guest checkout — no account needed." />
+        <SectionHead kicker="The shelf" title={<>Take some home.</>} lead="Six or more bottles and freight's on us. Guest checkout — no account needed." />
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <p className="kicker text-granite-500 mr-2">Filter</p>
           {FILTERS.map((f) => (
@@ -171,7 +163,7 @@ export default function Winery() {
             const soldOut = p.stock === 0;
             return (
               <Reveal key={p.id} delay={(i % 4) * 80}>
-                <article className="group border-2 border-granite-900 bg-bone flex flex-col hover:shadow-hard transition-shadow duration-300">
+                <article className="group border-2 border-granite-900 bg-bone flex flex-col lux-card">
                   <button type="button" onClick={() => setSelectedId(p.id)} className="text-left w-full cursor-pointer">
                     <div className="bg-granite-100/80 border-b-2 border-granite-900 grid place-items-center py-7 overflow-hidden">
                       <BottleArt product={p} className="h-48 w-auto transition-transform duration-500 group-hover:-translate-y-1.5" />
@@ -221,7 +213,7 @@ export default function Winery() {
       <section className="bg-granite-900 text-bone mt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
-            <p className="kicker text-granite-500">03 — Trade &amp; stockists</p>
+            <p className="kicker text-granite-500">Trade &amp; stockists</p>
             <h2 className="font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-3">Pour it at your place.</h2>
             <p className="mt-5 text-granite-300 max-w-lg leading-relaxed">
               We work directly with bottle shops, bars and restaurants — no distributor in the middle, margin-friendly, and the medals do half the selling for you. Minimum order 12
@@ -239,7 +231,7 @@ export default function Winery() {
             </Link>
           </Reveal>
           <Reveal delay={120}>
-            <div className="img-frame-alt border-2 border-bone/40">
+            <div className="img-frame-alt border-2 border-bone/40 lux-zoom">
               <img src={IMG.bottles} alt="Wine, beer and mead bottles on a granite table" className="w-full h-[280px] sm:h-[380px] object-cover img-in" loading="lazy" />
             </div>
           </Reveal>

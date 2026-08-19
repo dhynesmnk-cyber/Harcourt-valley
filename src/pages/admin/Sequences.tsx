@@ -11,6 +11,14 @@ function SequenceCard({ seq }: { seq: Sequence }) {
 
   useEffect(() => setDraft(seq.steps), [seq]);
 
+  // Every other dialog in here closes on Escape; this one didn't.
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPreview(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [preview]);
+
   const sentCount = sends.filter((s) => s.status === "sent" && s.subject && seq.steps.some((st) => st.subject === s.subject)).length;
 
   const save = () => {
