@@ -1,18 +1,19 @@
 /* ------------------------------------------------------------------ */
-/*  bee23 client — talks to the standalone bee23 engine through the    */
-/*  Netlify Function proxy at /.netlify/functions/bee23. The engine's  */
-/*  API token lives only in that function's environment; nothing here  */
-/*  ever holds a credential, so this file is safe to ship to the       */
-/*  browser as-is.                                                     */
+/*  BeeSearch client — talks to the standalone discovery engine (built  */
+/*  on Replit, still called "bee23" on its own end) through the        */
+/*  Netlify Function proxy at /.netlify/functions/beesearch. The       */
+/*  engine's API token lives only in that function's environment;      */
+/*  nothing here ever holds a credential, so this file is safe to ship */
+/*  to the browser as-is.                                              */
 /*                                                                      */
 /*  When BEE23_ENGINE_URL / BEE23_API_TOKEN aren't set on the deploy,   */
 /*  the proxy replies 503 and every call here resolves to ok: false —   */
 /*  callers fall back to local demo behaviour rather than break.        */
 /* ------------------------------------------------------------------ */
 
-const ENDPOINT = "/.netlify/functions/bee23";
+const ENDPOINT = "/.netlify/functions/beesearch";
 
-export interface Bee23Stockist {
+export interface BeeSearchStockist {
   id: number;
   businessName: string;
   websiteUrl: string | null;
@@ -20,7 +21,7 @@ export interface Bee23Stockist {
   category: string | null;
 }
 
-export interface Bee23DiscoverySuggestion {
+export interface BeeSearchDiscoverySuggestion {
   id: number;
   accountName: string;
   websiteUrl: string;
@@ -29,7 +30,7 @@ export interface Bee23DiscoverySuggestion {
   status: string;
 }
 
-export interface Bee23Account {
+export interface BeeSearchAccount {
   id: number;
   accountName: string;
   websiteUrl: string;
@@ -39,11 +40,11 @@ export interface Bee23Account {
   errorMessage: string | null;
 }
 
-type Bee23Result<T> =
+type BeeSearchResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string; status: number; configured: boolean };
 
-async function call<T>(action: string, params: Record<string, unknown> = {}): Promise<Bee23Result<T>> {
+async function call<T>(action: string, params: Record<string, unknown> = {}): Promise<BeeSearchResult<T>> {
   let res: Response;
   try {
     res = await fetch(ENDPOINT, {
@@ -52,7 +53,7 @@ async function call<T>(action: string, params: Record<string, unknown> = {}): Pr
       body: JSON.stringify({ action, ...params }),
     });
   } catch {
-    return { ok: false, error: "Could not reach bee23.", status: 0, configured: true };
+    return { ok: false, error: "Could not reach the engine.", status: 0, configured: true };
   }
 
   let body: any = null;
@@ -65,7 +66,7 @@ async function call<T>(action: string, params: Record<string, unknown> = {}): Pr
   if (!res.ok) {
     return {
       ok: false,
-      error: body?.error || `bee23 request failed (${res.status})`,
+      error: body?.error || `Engine request failed (${res.status})`,
       status: res.status,
       configured: body?.configured !== false,
     };
@@ -75,13 +76,13 @@ async function call<T>(action: string, params: Record<string, unknown> = {}): Pr
 }
 
 /** Cheap probe: is the proxy configured and does the token work? */
-export async function checkBee23Available(): Promise<boolean> {
+export async function checkEngineAvailable(): Promise<boolean> {
   const result = await call<{ count: number }>("status");
   return result.ok;
 }
 
-export async function listStockists(): Promise<Bee23Stockist[]> {
-  const result = await call<Bee23Stockist[]>("list-stockists");
+export async function listStockists(): Promise<BeeSearchStockist[]> {
+  const result = await call<BeeSearchStockist[]>("list-stockists");
   return result.ok ? result.data : [];
 }
 
@@ -90,8 +91,8 @@ export async function addStockist(input: {
   websiteUrl?: string;
   location?: string;
   category?: string;
-}): Promise<Bee23Stockist | null> {
-  const result = await call<Bee23Stockist>("add-stockist", input);
+}): Promise<BeeSearchStockist | null> {
+  const result = await call<BeeSearchStockist>("add-stockist", input);
   return result.ok ? result.data : null;
 }
 
@@ -108,21 +109,21 @@ export async function runDiscovery(
   return { ok: true, count: result.data.count, basedOn: result.data.basedOn };
 }
 
-export async function listDiscoverySuggestions(): Promise<Bee23DiscoverySuggestion[]> {
-  const result = await call<Bee23DiscoverySuggestion[]>("list-discovery");
+export async function listDiscoverySuggestions(): Promise<BeeSearchDiscoverySuggestion[]> {
+  const result = await call<BeeSearchDiscoverySuggestion[]>("list-discovery");
   return result.ok ? result.data : [];
 }
 
 export async function addSuggestionAsAccount(
   id: number,
-): Promise<{ ok: true; account: Bee23Account } | { ok: false; error: string }> {
-  const result = await call<{ account: Bee23Account }>("add-suggestion", { id });
+): Promise<{ ok: true; account: BeeSearchAccount } | { ok: false; error: string }> {
+  const result = await call<{ account: BeeSearchAccount }>("add-suggestion", { id });
   if (!result.ok) return { ok: false, error: result.error };
   return { ok: true, account: result.data.account };
 }
 
-export async function getAccount(id: number): Promise<Bee23Account | null> {
-  const result = await call<Bee23Account>("get-account", { id });
+export async function getAccount(id: number): Promise<BeeSearchAccount | null> {
+  const result = await call<BeeSearchAccount>("get-account", { id });
   return result.ok ? result.data : null;
 }
 
@@ -155,7 +156,7 @@ const ENRICHMENT_TERMINAL_STATES = new Set(["completed", "failed", "blocked"]);
 export async function waitForEnrichment(
   id: number,
   { intervalMs = 3000, timeoutMs = 60000 }: { intervalMs?: number; timeoutMs?: number } = {},
-): Promise<Bee23Account | null> {
+): Promise<BeeSearchAccount | null> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const account = await getAccount(id);

@@ -30,7 +30,7 @@ export interface Lead {
   message: string;
   status: LeadStatus;
   bookedDate: string | null;
-  source: "website" | "bee23";
+  source: "website" | "beesearch";
   infoPack: boolean;
   wantsVisit: boolean;
   createdAt: string;
@@ -134,7 +134,7 @@ export interface EmailSend {
   status: "scheduled" | "sent";
 }
 
-export interface Bee23Profile {
+export interface BeeSearchProfile {
   id: string;
   name: string;
   who: string;
@@ -147,7 +147,16 @@ export interface OutboxItem {
   contact: string;
   subject: string;
   body: string;
-  state: "draft" | "approved" | "sent";
+  /** Why the engine (or the demo data) suggested this business — shown on the review modal for transparency. */
+  matchedOn?: string;
+  /** From the engine's account enrichment — a real computed fit score (0–100ish), kept rather than discarded after the draft is written. */
+  compositeScore?: number | null;
+  /** The engine's own recommended approach for this account, shown alongside the score. */
+  recommendedStrategy?: string | null;
+  state: "draft" | "approved" | "sent" | "replied" | "declined" | "converted";
+  sentAt: string | null;
+  /** Set once "Convert to enquiry" has moved this reply into the pipeline. */
+  convertedLeadId: string | null;
   updatedAt: string;
 }
 
@@ -374,7 +383,7 @@ export function seedLeads(): Lead[] {
     },
     {
       id: "l8", type: "event", subtype: "retreat", names: "Fern & Ivy Leadership", email: "hello@fernivy.example.com", phone: "0400 218 340",
-      preferredDate: null, guestCount: 24, status: "archived", bookedDate: null, source: "bee23",
+      preferredDate: null, guestCount: 24, status: "archived", bookedDate: null, source: "beesearch",
       infoPack: false, wantsVisit: false, createdAt: iso(-210),
       message: "Chose a coastal venue for this year. Worth re-approaching for spring planning days.",
     },
@@ -464,7 +473,7 @@ export function seedOrders(): Order[] {
   ];
 }
 
-export function seedProfiles(): Bee23Profile[] {
+export function seedProfiles(): BeeSearchProfile[] {
   return [
     {
       id: "bp1", name: "Regional stockists", who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
@@ -483,7 +492,7 @@ export function seedOutbox(): OutboxItem[] {
       id: "ob1", business: "The Copper Still, Castlemaine", contact: "Nadia Ferreyra",
       subject: "A Shiraz your regulars keep asking about",
       body: "Hi Nadia — we're Harcourt Valley Vineyards, Bendigo's most-awarded winery (500+ medals, if the cabinet's to be believed).\n\nOur Granite Face Shiraz is pouring well at a few bars your size around the region, and it's margin-friendly at your by-the-glass price point. I'm through Castlemaine next Thursday — happy to drop a sample by.\n\nWorth ten minutes?\n\n— Tom",
-      state: "sent", updatedAt: iso(-6, 10),
+      state: "sent", sentAt: iso(-6, 10), convertedLeadId: null, updatedAt: iso(-6, 10),
     },
   ];
 }

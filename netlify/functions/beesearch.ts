@@ -1,11 +1,13 @@
 /* ------------------------------------------------------------------ */
-/*  bee23 proxy — server-side bridge to the standalone bee23 engine    */
+/*  BeeSearch proxy — server-side bridge to the standalone discovery    */
+/*  engine (still called "bee23" on its own end).                       */
 /*                                                                      */
 /*  Keeps BEE23_API_TOKEN out of the browser bundle. The client (see    */
-/*  src/lib/bee23.ts) POSTs an { action, ... } body here; this function */
-/*  maps that to one specific engine endpoint from a fixed whitelist —  */
-/*  it is not a general-purpose proxy, so a compromised frontend can't  */
-/*  be redirected to call arbitrary paths on the engine.                */
+/*  src/lib/beesearchEngine.ts) POSTs an { action, ... } body here;     */
+/*  this function maps that to one specific engine endpoint from a      */
+/*  fixed whitelist — it is not a general-purpose proxy, so a           */
+/*  compromised frontend can't be redirected to call arbitrary paths    */
+/*  on the engine.                                                      */
 /* ------------------------------------------------------------------ */
 
 interface ProxyRequest {
@@ -113,7 +115,7 @@ export default async (request: Request): Promise<Response> => {
   const config = engineConfig();
   if (!config) {
     return new Response(
-      JSON.stringify({ error: "bee23 engine is not configured", configured: false }),
+      JSON.stringify({ error: "BeeSearch is not configured", configured: false }),
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -155,7 +157,7 @@ export default async (request: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json" },
     });
   } catch {
-    return new Response(JSON.stringify({ error: "bee23 engine is unreachable" }), {
+    return new Response(JSON.stringify({ error: "BeeSearch is unreachable" }), {
       status: 502,
       headers: { "Content-Type": "application/json" },
     });
