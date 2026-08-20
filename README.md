@@ -134,12 +134,15 @@ changes then live in that browser only, and "Reset demo data" reseeds them
 See **`BACKEND.md`** for how persistence works, how to set it up, and what the
 design deliberately doesn't do.
 
-## Bee23 outreach engine
+## BeeSearch outreach engine
 
-The Outreach tab (`/admin` → Outreach) can run on a real
-[bee23](https://github.com/dhynesmnk-cyber/BeeSearch) engine instead of its
-built-in demo data. It's optional — with nothing configured, Outreach behaves
-exactly as it does today.
+The BeeSearch tab (`/admin` → BeeSearch) can run on a real
+[BeeSearch](https://github.com/dhynesmnk-cyber/BeeSearch) engine instead of its
+built-in demo data. It's optional — with nothing configured, BeeSearch behaves
+exactly as it does today. (The engine still refers to itself as "bee23"
+internally — its own API paths and env var names below — that's its original
+name from before this admin's own branding moved to "BeeSearch"; the two
+aren't in conflict, they're just at different layers.)
 
 To connect one, set two environment variables on the Netlify site (Site
 configuration → Environment variables), not in this repo:
@@ -149,11 +152,11 @@ configuration → Environment variables), not in this repo:
 | `BEE23_ENGINE_URL` | The deployed engine's base URL, e.g. `https://bee23.example.com` |
 | `BEE23_API_TOKEN` | A token minted from that engine — see its README's "Using bee23 from another site" |
 
-Both are read only by `netlify/functions/bee23.ts`, a server-side proxy — the
-token never reaches the browser bundle. This requires a Netlify deploy that
-runs Functions (Git-connected or `netlify deploy`); **Netlify Drop does not
-support Functions or environment variables**, so the drag-and-drop option above
-always runs Outreach in demo mode.
+Both are read only by `netlify/functions/beesearch.ts`, a server-side proxy —
+the token never reaches the browser bundle. This requires a Netlify deploy
+that runs Functions (Git-connected or `netlify deploy`); **Netlify Drop does
+not support Functions or environment variables**, so the drag-and-drop option
+above always runs BeeSearch in demo mode.
 
 Once connected, the "Regional stockists" target profile searches for real
 prospects, seeded from Harcourt's own trade accounts (`src/lib/data.ts` →

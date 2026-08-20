@@ -26,7 +26,7 @@
     # fixed allowlist would silently break those posts); 'blob:' is what the
     # product-photo uploader renders from — uploaded images are downscaled and
     # stored in the browser's IndexedDB, then displayed via object URLs.
-    # connect-src: 'self' covers /.netlify/functions/bee23, but the Supabase
+    # connect-src: 'self' covers /.netlify/functions/beesearch, but the Supabase
     # backend (auth.getSession/onAuthStateChange on every route, admin-login,
     # and every supabase.from(...) call in remote.ts) is cross-origin against
     # https://<project-ref>.supabase.co — without this it's silently blocked
