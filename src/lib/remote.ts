@@ -1,5 +1,5 @@
 import type {
-  Bee23Profile, EmailSend, Lead, LeadNote, Order, OutboxItem,
+  BeeSearchProfile, EmailSend, Lead, LeadNote, Order, OutboxItem,
   Product, Sequence, SiteConfig, TradeOrder,
 } from "./data";
 import { seedConfig } from "./data";
@@ -22,7 +22,7 @@ export interface RemoteState {
   tradeOrders: TradeOrder[];
   sequences: Sequence[];
   sends: EmailSend[];
-  profiles: Bee23Profile[];
+  profiles: BeeSearchProfile[];
   outbox: OutboxItem[];
   config: SiteConfig;
 }
@@ -90,16 +90,21 @@ const toSend = (r: any): EmailSend => ({
   subject: r.subject ?? "", sendAt: r.send_at, status: r.status,
 });
 
-const profileRow = (p: Bee23Profile) => ({ id: p.id, name: p.name, who: p.who, criteria: p.criteria });
-const toProfile = (r: any): Bee23Profile => ({ id: r.id, name: r.name, who: r.who ?? "", criteria: r.criteria ?? [] });
+const profileRow = (p: BeeSearchProfile) => ({ id: p.id, name: p.name, who: p.who, kind: p.kind, criteria: p.criteria });
+const toProfile = (r: any): BeeSearchProfile => ({
+  id: r.id, name: r.name, who: r.who ?? "", kind: r.kind === "planner" ? "planner" : "stockist", criteria: r.criteria ?? [],
+});
 
 const outboxRow = (o: OutboxItem) => ({
-  id: o.id, business: o.business, contact: o.contact, subject: o.subject,
-  body: o.body, state: o.state, updated_at: o.updatedAt,
+  id: o.id, business: o.business, contact: o.contact, email: o.email, phone: o.phone, town: o.town, kind: o.kind,
+  subject: o.subject, body: o.body, matched_on: o.matchedOn, state: o.state, sent_at: o.sentAt,
+  converted_lead_id: o.convertedLeadId, updated_at: o.updatedAt,
 });
 const toOutbox = (r: any): OutboxItem => ({
-  id: r.id, business: r.business, contact: r.contact ?? "", subject: r.subject ?? "",
-  body: r.body ?? "", state: r.state, updatedAt: r.updated_at,
+  id: r.id, business: r.business, contact: r.contact ?? "", email: r.email ?? "", phone: r.phone ?? "",
+  town: r.town ?? "", kind: r.kind === "planner" ? "planner" : "stockist", subject: r.subject ?? "",
+  body: r.body ?? "", matchedOn: r.matched_on ?? [], state: r.state, sentAt: r.sent_at ?? null,
+  convertedLeadId: r.converted_lead_id ?? null, updatedAt: r.updated_at,
 });
 
 /* ---------------- hydrate ---------------- */
@@ -120,7 +125,7 @@ export async function hydrate(): Promise<RemoteState | null> {
     supabase.from("trade_orders").select("*").order("created_at", { ascending: false }),
     supabase.from("sequences").select("*"),
     supabase.from("email_sends").select("*"),
-    supabase.from("bee23_profiles").select("*"),
+    supabase.from("beesearch_profiles").select("*"),
     supabase.from("outbox").select("*"),
     supabase.from("site_config").select("data").eq("id", 1).maybeSingle(),
   ]);
@@ -228,7 +233,7 @@ export async function syncState(prev: RemoteState, next: RemoteState, isAdmin: b
     push("trade_orders", prev.tradeOrders, next.tradeOrders, tradeRow, errors),
     push("sequences", prev.sequences, next.sequences, sequenceRow, errors),
     push("email_sends", prev.sends, next.sends, sendRow, errors),
-    push("bee23_profiles", prev.profiles, next.profiles, profileRow, errors),
+    push("beesearch_profiles", prev.profiles, next.profiles, profileRow, errors),
     push("outbox", prev.outbox, next.outbox, outboxRow, errors),
   ]);
 

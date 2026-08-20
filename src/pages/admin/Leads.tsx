@@ -45,7 +45,7 @@ function LeadDetail({ leadId, clearFocus }: { leadId: string; clearFocus: () => 
           <h2 className="font-display text-2xl font-medium">{lead.names}</h2>
           <TypeChip type={lead.type} subtype={lead.subtype} />
           <span className="ml-auto text-xs text-granite-500 font-label">
-            via {lead.source === "bee23" ? "Bee23 outreach" : "the website"} · {timeAgo(lead.createdAt)}
+            via {lead.source === "beesearch" ? "BeeSearch outreach" : "the website"} · {timeAgo(lead.createdAt)}
           </span>
         </div>
       </div>
