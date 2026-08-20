@@ -134,10 +134,14 @@ export interface EmailSend {
   status: "scheduled" | "sent";
 }
 
+/** Matches the engine's own accountType/kind vocabulary (see netlify/functions/_beesearch/db.ts) — kept the same name on both sides on purpose. */
+export type BeeSearchKind = "stockist" | "referral_partner";
+
 export interface BeeSearchProfile {
   id: string;
   name: string;
   who: string;
+  kind: BeeSearchKind;
   criteria: string[];
 }
 
@@ -476,11 +480,13 @@ export function seedOrders(): Order[] {
 export function seedProfiles(): BeeSearchProfile[] {
   return [
     {
-      id: "bp1", name: "Regional stockists", who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
+      id: "bp1", name: "Regional stockists", kind: "stockist",
+      who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
       criteria: ["Independent bottle shops & wine bars", "Regional VIC & the Murray", "Already stock premium Central Victorian reds"],
     },
     {
-      id: "bp2", name: "Wedding & event planners", who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
+      id: "bp2", name: "Wedding & event planners", kind: "referral_partner",
+      who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
       criteria: ["Planners within 90 min of Harcourt", "Couples & corporates of 60–140 guests", "Stylists who book vineyard venues already"],
     },
   ];

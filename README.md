@@ -136,30 +136,52 @@ design deliberately doesn't do.
 
 ## BeeSearch outreach engine
 
-The BeeSearch tab (`/admin` → BeeSearch) can run on a real
-[BeeSearch](https://github.com/dhynesmnk-cyber/BeeSearch) engine instead of its
-built-in demo data. It's optional — with nothing configured, BeeSearch behaves
-exactly as it does today. (The engine still refers to itself as "bee23"
-internally — its own API paths and env var names below — that's its original
-name from before this admin's own branding moved to "BeeSearch"; the two
-aren't in conflict, they're just at different layers.)
+BeeSearch (`/admin` → BeeSearch) is a discovery engine that lives entirely in
+this repo — it was originally a separate app on Replit, then folded in-house
+so it deploys as part of this same Netlify site, with no other hosting to
+run or pay for. It's optional — with nothing configured, BeeSearch behaves
+as a small, fixed demo sample, clearly marked as such.
 
-To connect one, set two environment variables on the Netlify site (Site
-configuration → Environment variables), not in this repo:
+It covers two kinds of target, scored on different rubrics: **stockists**
+(independent bottle shops, wine bars, restaurants — scored on brand fit and
+purchasing/merchandising readiness) and **referral partners** (wedding and
+event planners — scored on venue affinity, guest-size fit and referral
+readiness). Both kinds share the same tables and the same Approve → Send
+outbox workflow.
+
+To connect it for real, set these environment variables on the Netlify site
+(Site configuration → Environment variables), not in this repo:
 
 | Variable | Value |
 |---|---|
-| `BEE23_ENGINE_URL` | The deployed engine's base URL, e.g. `https://bee23.example.com` |
-| `BEE23_API_TOKEN` | A token minted from that engine — see its README's "Using bee23 from another site" |
+| `SUPABASE_URL` | Same Supabase project URL used elsewhere in this app |
+| `SUPABASE_SERVICE_ROLE_KEY` | The project's service role key (Settings → API) — server-side only, never exposed to the browser |
+| `SUPABASE_ANON_KEY` | Same anon key used elsewhere — used only to verify the caller's session before any service-role call runs |
+| `ANTHROPIC_API_KEY` | An Anthropic API key, used for account evaluation, discovery, and pitch generation |
+| `ANTHROPIC_MODEL` | Optional. Defaults to `claude-sonnet-5` |
 
-Both are read only by `netlify/functions/beesearch.ts`, a server-side proxy —
-the token never reaches the browser bundle. This requires a Netlify deploy
-that runs Functions (Git-connected or `netlify deploy`); **Netlify Drop does
-not support Functions or environment variables**, so the drag-and-drop option
-above always runs BeeSearch in demo mode.
+These are read by `netlify/functions/beesearch.ts` and its background/
+scheduled counterparts (`beesearch-discover-background.ts`,
+`beesearch-enrichment-worker.ts`) — all server-side; none of these keys ever
+reach the browser bundle. This requires a Netlify deploy that runs Functions
+(Git-connected or `netlify deploy`); **Netlify Drop does not support
+Functions, Background Functions, Scheduled Functions, or environment
+variables**, so the drag-and-drop option above always runs BeeSearch in demo
+mode.
 
-Once connected, the "Regional stockists" target profile searches for real
-prospects, seeded from Harcourt's own trade accounts (`src/lib/data.ts` →
-`seedTradeOrders`) the first time it runs. "Wedding & event planners" stays on
-demo data — there's no equivalent structured list of existing planner
-relationships in this app to train it on.
+Before first use, run `supabase/migrations/0003_beesearch_engine.sql`
+against the project (SQL Editor, same as the other migrations) — it creates
+BeeSearch's own tables, admin-only RLS policies, and seeds Harcourt's brand
+context so discovery and pitch generation work with no separate settings
+screen. It starts empty: no accounts, scores, or pitch history carry over
+from the old Replit app.
+
+Once connected, both target profiles run live discovery: "Regional
+stockists" trains from Harcourt's own trade accounts (`src/lib/data.ts` →
+`seedTradeOrders`), and "Wedding & event planners" trains from bookings
+marked `Booked` in the leads pipeline — five of a kind are needed before
+live discovery kicks in for that kind; below that it stays on demo data.
+Discovery itself runs as a Netlify Background Function (the search + AI
+pipeline takes minutes, well past a normal function's time limit), and a
+Scheduled Function sweeps for pending account enrichment once a minute — the
+admin UI polls for results rather than waiting on an open connection.

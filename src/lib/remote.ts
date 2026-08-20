@@ -90,8 +90,8 @@ const toSend = (r: any): EmailSend => ({
   subject: r.subject ?? "", sendAt: r.send_at, status: r.status,
 });
 
-const profileRow = (p: BeeSearchProfile) => ({ id: p.id, name: p.name, who: p.who, criteria: p.criteria });
-const toProfile = (r: any): BeeSearchProfile => ({ id: r.id, name: r.name, who: r.who ?? "", criteria: r.criteria ?? [] });
+const profileRow = (p: BeeSearchProfile) => ({ id: p.id, name: p.name, who: p.who, criteria: p.criteria, kind: p.kind });
+const toProfile = (r: any): BeeSearchProfile => ({ id: r.id, name: r.name, who: r.who ?? "", criteria: r.criteria ?? [], kind: r.kind ?? "stockist" });
 
 const outboxRow = (o: OutboxItem) => ({
   id: o.id, business: o.business, contact: o.contact, subject: o.subject, body: o.body,
