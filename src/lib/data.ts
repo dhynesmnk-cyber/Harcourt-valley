@@ -134,15 +134,40 @@ export interface EmailSend {
   status: "scheduled" | "sent";
 }
 
-/** Matches the engine's own accountType/kind vocabulary (see netlify/functions/_beesearch/db.ts) — kept the same name on both sides on purpose. */
+/**
+ * Which scoring rubric a target is judged on — NOT what the user calls it.
+ * "stockist" runs the seven-dimension retail matrix (brand fit, purchasing,
+ * merchandising); "referral_partner" runs the five-dimension referral matrix
+ * (venue affinity, guest-size fit, booking volume, referral readiness). Both
+ * are hardcoded in the engine's prompts, which is why this stays a closed set
+ * while target names are free-form. Matches the engine's own vocabulary — see
+ * netlify/functions/_beesearch/db.ts.
+ */
 export type BeeSearchKind = "stockist" | "referral_partner";
 
+/** A named discovery target: its own training list, its own search settings. */
 export interface BeeSearchProfile {
   id: string;
   name: string;
   who: string;
+  /** Which rubric scores this target's prospects. */
   kind: BeeSearchKind;
+  /** Where to look, in plain words — "Regional Victoria, within 90 minutes". */
+  region: string;
+  /** What kinds of business to look for — fed to the engine as search terms. */
+  businessTypes: string[];
+  /** Anything else worth telling the search. Free text, optional. */
+  notes: string;
+  /** Display-only summary chips, derived from region + businessTypes. */
   criteria: string[];
+}
+
+/** The chips shown on a target card. Derived rather than stored, so editing a
+ *  target's region or business types can't leave stale chips behind. */
+export function profileCriteria(p: BeeSearchProfile): string[] {
+  const chips = [...p.businessTypes.filter(Boolean)];
+  if (p.region.trim()) chips.push(p.region.trim());
+  return chips.length > 0 ? chips : p.criteria;
 }
 
 export interface OutboxItem {
@@ -157,6 +182,12 @@ export interface OutboxItem {
   compositeScore?: number | null;
   /** The engine's own recommended approach for this account, shown alongside the score. */
   recommendedStrategy?: string | null;
+  /** The prospect's own site, carried through so the draft can link back to it. */
+  websiteUrl?: string | null;
+  /** Contact addresses the engine scraped from that site. This tool never sends
+   *  anything — these are here so the draft can be copied to a real address by
+   *  hand, in the user's own mail client. */
+  emails?: string[] | null;
   state: "draft" | "approved" | "sent" | "replied" | "declined" | "converted";
   sentAt: string | null;
   /** Set once "Convert to enquiry" has moved this reply into the pipeline. */
@@ -478,29 +509,34 @@ export function seedOrders(): Order[] {
 }
 
 export function seedProfiles(): BeeSearchProfile[] {
+  // The ids matter: migration 0004 backfills pre-target training rows onto
+  // bp1/bp2, so renaming or renumbering these orphans that data.
   return [
     {
       id: "bp1", name: "Regional stockists", kind: "stockist",
       who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
-      criteria: ["Independent bottle shops & wine bars", "Regional VIC & the Murray", "Already stock premium Central Victorian reds"],
+      region: "Regional Victoria and the Murray, within a day's drive of Harcourt",
+      businessTypes: ["Independent bottle shops", "Wine bars", "Restaurants with a regional list"],
+      notes: "Prefer places already pouring premium Central Victorian reds.",
+      criteria: [],
     },
     {
       id: "bp2", name: "Wedding & event planners", kind: "referral_partner",
       who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
-      criteria: ["Planners within 90 min of Harcourt", "Couples & corporates of 60–140 guests", "Stylists who book vineyard venues already"],
+      region: "Within 90 minutes of Harcourt — Bendigo, Castlemaine, Daylesford, Ballarat, Melbourne",
+      businessTypes: ["Wedding planners", "Event stylists", "Corporate event coordinators"],
+      notes: "Looking for planners who already book vineyard and barn venues for 60–140 guests.",
+      criteria: [],
     },
   ];
 }
 
 export function seedOutbox(): OutboxItem[] {
-  return [
-    {
-      id: "ob1", business: "The Copper Still, Castlemaine", contact: "Nadia Ferreyra",
-      subject: "A Shiraz your regulars keep asking about",
-      body: "Hi Nadia — we're Harcourt Valley Vineyards, Bendigo's most-awarded winery (500+ medals, if the cabinet's to be believed).\n\nOur Granite Face Shiraz is pouring well at a few bars your size around the region, and it's margin-friendly at your by-the-glass price point. I'm through Castlemaine next Thursday — happy to drop a sample by.\n\nWorth ten minutes?\n\n— Tom",
-      state: "sent", sentAt: iso(-6, 10), convertedLeadId: null, updatedAt: iso(-6, 10),
-    },
-  ];
+  // Deliberately empty. Everything in the outbox is a real business BeeSearch
+  // found and a real draft it wrote; a made-up example sitting among them is
+  // indistinguishable from the genuine article, which is exactly the confusion
+  // the demo data was removed to end.
+  return [];
 }
 
 export function seedTypedLines(): TypedLine[] {
