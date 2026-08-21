@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fmtDate, timeAgo, type BeeSearchProfile, type OutboxItem } from "../../lib/data";
+import { fmtDate, timeAgo, type BeeSearchKind, type BeeSearchProfile, type OutboxItem } from "../../lib/data";
 import { useStore } from "../../lib/store";
 import { ArrowRight, CloseIcon, FactGrid, PlusIcon, SearchIcon, SendIcon, Tick } from "../../components/ui";
 import {
@@ -7,8 +7,7 @@ import {
   listStockists,
   addStockist,
   removeStockist,
-  runDiscovery,
-  listDiscoverySuggestions,
+  runDiscoveryAndWait,
   addSuggestionAsAccount,
   waitForEnrichment,
   generatePitch,
@@ -27,21 +26,22 @@ interface Suggestion {
   relevanceScore?: number;
 }
 
-const SUGGESTIONS: Record<string, Suggestion[]> = {
-  bp1: [
+/** Only used when the engine isn't reachable — a small, honest, fixed sample. */
+const DEMO_SUGGESTIONS: Record<BeeSearchKind, Suggestion[]> = {
+  stockist: [
     { business: "Rangeview Cellars", contact: "Owen", town: "Kyneton" },
     { business: "The Post Office Bar", contact: "Priya", town: "Daylesford" },
     { business: "Maldon Bottle Shop", contact: "Geoff", town: "Maldon" },
   ],
-  bp2: [
+  referral_partner: [
     { business: "Aisle & Oak Planning", contact: "Grace", town: "Bendigo" },
     { business: "Gather Events Co.", contact: "Mitch", town: "Ballarat" },
     { business: "Northstar Retreats", contact: "Eve", town: "Melbourne" },
   ],
 };
 
-function draftCopy(profileId: string, s: Suggestion): { subject: string; body: string } {
-  if (profileId === "bp2") {
+function draftCopy(kind: BeeSearchKind, s: Suggestion): { subject: string; body: string } {
+  if (kind === "referral_partner") {
     return {
       subject: `A vineyard your couples haven't seen yet`,
       body: `Hi ${s.contact} — quick one. Harcourt Valley is a working vineyard 30 minutes from Bendigo: ceremony in the vines, dinner in the old shearing shed, up to 120 guests. We host one wedding a day, ever, and the ballparks are published — no pricing games.\n\nIf you have couples circling ${s.town} and surrounds, I'd love to show you around. Tasting's on us.\n\n— Tom`,
@@ -53,14 +53,9 @@ function draftCopy(profileId: string, s: Suggestion): { subject: string; body: s
   };
 }
 
-/* The engine's discovery matrix scores brand/purchasing/merchandising fit — a shape
- * built for retail stockists, not wedding planners. "Regional stockists" maps
- * onto Harcourt's own trade orders (real businesses already on the books), so
- * that's the one profile wired to the live engine. "Wedding & event planners"
- * has no equivalent structured list in this app, and seeding one with guesses
- * would be worse than the demo data it already shows — so it stays on that. */
-const LIVE_DISCOVERY_PROFILE_ID = "bp1";
-const MIN_STOCKISTS_FOR_DISCOVERY = 5;
+const MIN_TRAINING_FOR_DISCOVERY = 5;
+
+const KIND_LABEL: Record<BeeSearchKind, string> = { stockist: "stockists", referral_partner: "referral partners" };
 
 /* ---------------- transparency panel ---------------- */
 
@@ -75,20 +70,22 @@ function HowItWorks({ engineConnected }: { engineConnected: boolean | null }) {
         </li>
         {engineConnected ? (
           <li>
-            <span className="font-label font-semibold text-granite-900">Regional stockists uses a real, live search.</span> It learns
-            from a training list of stockists you keep (seeded from your actual trade accounts), then searches for similar businesses,
-            visits each one's own website to score the fit, and drafts the email itself. That's genuinely happening, not simulated.
+            <span className="font-label font-semibold text-granite-900">Both targets run a real, live search.</span> Each learns from its
+            own training list, searches for similar businesses, visits each one's own website to score the fit against a rubric built for
+            that kind of business, and drafts the email itself. That's genuinely happening, not simulated — this is code in this repo now,
+            not a separate app it calls out to.
           </li>
         ) : (
           <li>
-            <span className="font-label font-semibold text-granite-900">The live engine isn't reachable right now.</span> Every
-            suggestion you see is a small, fixed demo sample kept in the code, clearly marked as such — not a live search.
+            <span className="font-label font-semibold text-granite-900">The engine isn't reachable right now.</span> Every suggestion you
+            see is a small, fixed demo sample kept in the code, clearly marked as such — not a live search.
           </li>
         )}
         <li>
-          <span className="font-label font-semibold text-granite-900">Wedding & event planners stays on demo data, on purpose.</span> The
-          live engine's matching is built for retail stockists (brand fit, purchasing patterns), not event planners — there's no
-          equivalent structured search for that yet, so guessing would be worse than being upfront that it's a sample.
+          <span className="font-label font-semibold text-granite-900">Stockists and referral partners use different rubrics.</span>{" "}
+          Stockists are scored on brand fit and purchasing/merchandising readiness — questions that make sense for a business buying and
+          reselling wine. Referral partners (like wedding planners) are scored on venue affinity, guest-size fit, booking volume and
+          referral readiness instead — nobody's asked how much wine a wedding planner would "purchase."
         </li>
         <li>
           <span className="font-label font-semibold text-granite-900">Every match shows its reasons.</span> A live suggestion carries the
@@ -109,14 +106,16 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
   const { profiles, addProfile, addOutbox, outbox, setOutboxState, convertOutboxToLead, leads, tradeOrders, toast } = useStore();
   const [newName, setNewName] = useState("");
   const [newWho, setNewWho] = useState("");
+  const [newKind, setNewKind] = useState<BeeSearchKind>("stockist");
   const [profileErr, setProfileErr] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisStage, setAnalysisStage] = useState(0);
-  const [results, setResults] = useState<{ criteria: string[]; suggestions: Suggestion[]; profileName: string; live: boolean } | null>(null);
+  const [results, setResults] = useState<{ criteria: string[]; suggestions: Suggestion[]; profileName: string; live: boolean; kind: BeeSearchKind } | null>(null);
   const [review, setReview] = useState<OutboxItem | null>(null);
   const [engineConnected, setEngineConnected] = useState<boolean | null>(null);
   const [findingProfileId, setFindingProfileId] = useState<string | null>(null);
   const [writingKey, setWritingKey] = useState<string | null>(null);
+  const [trainingKind, setTrainingKind] = useState<BeeSearchKind>("stockist");
   const [stockists, setStockists] = useState<BeeSearchStockist[]>([]);
   const [stockistsLoaded, setStockistsLoaded] = useState(false);
   const [newStockistName, setNewStockistName] = useState("");
@@ -136,15 +135,17 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     };
   }, []);
 
-  const refreshStockists = async () => {
-    const list = await listStockists();
+  const refreshStockists = async (kind: BeeSearchKind) => {
+    setStockistsLoaded(false);
+    const list = await listStockists(kind);
     setStockists(list);
     setStockistsLoaded(true);
   };
 
   useEffect(() => {
-    if (engineConnected) void refreshStockists();
-  }, [engineConnected]);
+    if (engineConnected) void refreshStockists(trainingKind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engineConnected, trainingKind]);
 
   const booked = leads.filter((l) => l.status === "booked");
 
@@ -159,15 +160,26 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
       const guests = booked.map((l) => l.guestCount ?? 0).filter((g) => g > 0);
       const lo = guests.length ? Math.min(...guests) : 60;
       const hi = guests.length ? Math.max(...guests) : 120;
+      const plannerProfile = profiles.find((p) => p.kind === "referral_partner");
+      if (engineConnected && plannerProfile) {
+        void findMatchesLive(plannerProfile, [
+          `${booked.length} bookings to learn from (${weddings} weddings)`,
+          `Guest counts between ${lo} and ${hi}`,
+          "Regional Victoria, within a 90-minute drive",
+        ]);
+        setAnalyzing(false);
+        return;
+      }
       setResults({
         profileName: "Based on your best bookings",
+        kind: "referral_partner",
         criteria: [
           `${booked.length} bookings to learn from (${weddings} weddings)`,
           `Guest counts between ${lo} and ${hi}`,
           "Regional Victoria, within a 90-minute drive",
         ],
         live: false,
-        suggestions: SUGGESTIONS.bp2,
+        suggestions: DEMO_SUGGESTIONS.referral_partner,
       });
       setAnalyzing(false);
     }, 2100);
@@ -179,24 +191,24 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
       return;
     }
     setProfileErr("");
-    addProfile({ name: newName.trim(), who: newWho.trim(), criteria: ["Custom target — criteria to refine together"] });
+    addProfile({ name: newName.trim(), who: newWho.trim(), kind: newKind, criteria: ["Custom target — criteria to refine together"] });
     toast(`Target "${newName.trim()}" added.`);
     setNewName("");
     setNewWho("");
+    setNewKind("stockist");
   };
 
   /** Adds Harcourt's own trade orders as stockists — real businesses already
-   *  on the books, not fabricated ones — up to `cap` new additions, or all of
-   *  them if `cap` is omitted. Used both to auto-train enough for discovery to
-   *  run at all, and by the explicit "Seed from my trade accounts" button. */
+   *  on the books, not fabricated ones. Only makes sense for the 'stockist'
+   *  kind; there's no equivalent auto-seed source for referral partners. */
   const seedStockistsFromTradeOrders = async (cap?: number): Promise<{ added: number; count: number }> => {
-    const existing = await listStockists();
+    const existing = await listStockists("stockist");
     const known = new Set(existing.map((s) => s.businessName.toLowerCase()));
     let added = 0;
     for (const t of tradeOrders) {
       if (cap != null && known.size >= cap) break;
       if (known.has(t.business.toLowerCase())) continue;
-      const result = await addStockist({ businessName: t.business });
+      const result = await addStockist({ businessName: t.business, kind: "stockist" });
       if (result) {
         known.add(t.business.toLowerCase());
         added++;
@@ -206,9 +218,13 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
   };
 
   /** Makes sure the engine has enough training data before discovery can run. */
-  const ensureStockistsTrained = async (): Promise<{ trained: boolean; added: number }> => {
-    const { added, count } = await seedStockistsFromTradeOrders(MIN_STOCKISTS_FOR_DISCOVERY);
-    return { trained: count >= MIN_STOCKISTS_FOR_DISCOVERY, added };
+  const ensureTrained = async (kind: BeeSearchKind): Promise<{ trained: boolean; added: number }> => {
+    if (kind === "stockist") {
+      const { added, count } = await seedStockistsFromTradeOrders(MIN_TRAINING_FOR_DISCOVERY);
+      return { trained: count >= MIN_TRAINING_FOR_DISCOVERY, added };
+    }
+    const count = (await listStockists(kind)).length;
+    return { trained: count >= MIN_TRAINING_FOR_DISCOVERY, added: 0 };
   };
 
   const handleAddStockist = async () => {
@@ -220,9 +236,9 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     setStockistErr("");
     setAddingStockist(true);
     try {
-      const created = await addStockist({ businessName: name });
+      const created = await addStockist({ businessName: name, kind: trainingKind });
       if (!created) {
-        toast("Couldn't add that stockist — try again shortly.");
+        toast("Couldn't add that — try again shortly.");
         return;
       }
       setStockists((prev) => [created, ...prev]);
@@ -252,7 +268,7 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     setSeedingFromTrade(true);
     try {
       const { added } = await seedStockistsFromTradeOrders();
-      await refreshStockists();
+      await refreshStockists("stockist");
       toast(added > 0 ? `Added ${added} trade account${added === 1 ? "" : "s"} to the training list.` : "Every trade account is already in the training list.");
     } catch {
       toast("Couldn't reach BeeSearch — try again shortly.");
@@ -261,44 +277,36 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     }
   };
 
-  const findMatchesLive = async (profile: BeeSearchProfile) => {
+  const findMatchesLive = async (profile: BeeSearchProfile, criteriaOverride?: string[]) => {
     setFindingProfileId(profile.id);
     setResults(null);
+    setTrainingKind(profile.kind);
     try {
-      const { trained, added } = await ensureStockistsTrained();
+      const { trained, added } = await ensureTrained(profile.kind);
       if (added > 0) {
-        await refreshStockists();
+        await refreshStockists(profile.kind);
         toast(`Trained BeeSearch on ${added} of your existing trade accounts.`);
       }
       if (!trained) {
-        toast(`BeeSearch needs at least ${MIN_STOCKISTS_FOR_DISCOVERY} stockists to learn from — add more in Stockist Training first.`);
+        toast(`BeeSearch needs at least ${MIN_TRAINING_FOR_DISCOVERY} ${KIND_LABEL[profile.kind]} to learn from — add more below first.`);
         return;
       }
 
-      const discovery = await runDiscovery(`Find businesses similar to: ${profile.who}`);
+      const discovery = await runDiscoveryAndWait(`Find businesses similar to: ${profile.who}`, profile.kind);
       if (!discovery.ok) {
         toast(discovery.error);
         return;
       }
 
-      const suggestions = await listDiscoverySuggestions();
-      const pending = suggestions.filter((s) => s.status === "pending");
-      if (pending.length === 0) {
-        toast("BeeSearch didn't turn up any new matches this time — try again shortly, or add more stockists to learn from.");
-        return;
-      }
-
+      const pending = discovery.suggestions.filter((s) => s.status === "pending");
       setResults({
-        profileName: `Matches for "${profile.name}"`,
-        criteria: profile.criteria,
+        profileName: criteriaOverride ? "Based on your best bookings" : `Matches for "${profile.name}"`,
+        kind: profile.kind,
+        criteria: criteriaOverride ?? profile.criteria,
         live: true,
         suggestions: pending.map((s) => ({
-          business: s.accountName,
-          contact: "",
-          town: "",
-          discoveryId: s.id,
-          reason: s.reason,
-          relevanceScore: s.relevanceScore,
+          business: s.accountName, contact: "", town: "",
+          discoveryId: s.id, reason: s.reason, relevanceScore: s.relevanceScore,
         })),
       });
     } catch {
@@ -309,19 +317,20 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
   };
 
   const findMatches = (profile: BeeSearchProfile) => {
-    if (engineConnected && profile.id === LIVE_DISCOVERY_PROFILE_ID) {
+    if (engineConnected) {
       void findMatchesLive(profile);
       return;
     }
     setResults({
       profileName: `Matches for "${profile.name}"`,
+      kind: profile.kind,
       criteria: profile.criteria,
       live: false,
-      suggestions: SUGGESTIONS[profile.id] ?? SUGGESTIONS.bp1,
+      suggestions: DEMO_SUGGESTIONS[profile.kind],
     });
   };
 
-  const generateDraftLive = async (s: Suggestion) => {
+  const generateDraftLive = async (kind: BeeSearchKind, s: Suggestion) => {
     if (s.discoveryId == null) return;
     const key = `live-${s.discoveryId}`;
     setWritingKey(key);
@@ -358,12 +367,12 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     }
   };
 
-  const generateDraft = (profileId: string, s: Suggestion) => {
+  const generateDraft = (kind: BeeSearchKind, s: Suggestion) => {
     if (s.discoveryId != null) {
-      void generateDraftLive(s);
+      void generateDraftLive(kind, s);
       return;
     }
-    const copy = draftCopy(profileId, s);
+    const copy = draftCopy(kind, s);
     addOutbox([{ business: s.business, contact: s.contact, matchedOn: s.reason, ...copy }]);
     toast(`Draft written for ${s.business} — it's in the outbox, waiting for you.`);
   };
@@ -391,7 +400,7 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
   const convertedCount = outbox.filter((o) => o.state === "converted").length;
 
   const facts = [
-    { label: "Stockists trained", value: stockistsLoaded ? String(stockists.length) : "—", detail: `${MIN_STOCKISTS_FOR_DISCOVERY} needed for live discovery` },
+    { label: `${trainingKind === "stockist" ? "Stockists" : "Referral partners"} trained`, value: stockistsLoaded ? String(stockists.length) : "—", detail: `${MIN_TRAINING_FOR_DISCOVERY} needed for live discovery` },
     { label: "In the outbox", value: String(grouped.draft.length + grouped.approved.length), detail: `${grouped.draft.length} draft · ${grouped.approved.length} approved` },
     { label: "Sent", value: String(sentCount), detail: sentCount === 0 ? "None yet" : "Emails that have gone out" },
     { label: "Reply rate", value: sentCount ? `${Math.round((loggedCount / sentCount) * 100)}%` : "—", detail: sentCount ? `${loggedCount} of ${sentCount} logged` : "Send some to start tracking" },
@@ -458,47 +467,69 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
                 </span>
               ))}
             </div>
-            <div className="mt-5 grid sm:grid-cols-3 gap-3">
-              {results.suggestions.map((s) => {
-                const key = s.discoveryId != null ? `live-${s.discoveryId}` : s.business;
-                const writing = writingKey === key;
-                return (
-                  <div key={key} className="border border-granite-500 p-4 bg-granite-700/40">
-                    <p className="font-label font-semibold text-sm">{s.business}</p>
-                    <p className="text-xs text-granite-300 mt-0.5">{s.reason ? s.reason : `${s.town} · ask for ${s.contact}`}</p>
-                    {s.relevanceScore != null ? (
-                      <p className="text-[0.68rem] text-ochre mt-1 font-label font-semibold">Relevance {Math.round(s.relevanceScore)}</p>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-sm bg-bone text-granite-900 mt-3 w-full disabled:opacity-60"
-                      disabled={writing}
-                      onClick={() => generateDraft("bp2", s)}
-                    >
-                      {writing ? "Writing…" : "Write the email"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            {results.suggestions.length === 0 ? (
+              <p className="mt-5 text-sm text-granite-300">Nothing turned up this time — try again shortly, or add more to the training list.</p>
+            ) : (
+              <div className="mt-5 grid sm:grid-cols-3 gap-3">
+                {results.suggestions.map((s) => {
+                  const key = s.discoveryId != null ? `live-${s.discoveryId}` : s.business;
+                  const writing = writingKey === key;
+                  return (
+                    <div key={key} className="border border-granite-500 p-4 bg-granite-700/40">
+                      <p className="font-label font-semibold text-sm">{s.business}</p>
+                      <p className="text-xs text-granite-300 mt-0.5">{s.reason ? s.reason : `${s.town} · ask for ${s.contact}`}</p>
+                      {s.relevanceScore != null ? (
+                        <p className="text-[0.68rem] text-ochre mt-1 font-label font-semibold">Relevance {Math.round(s.relevanceScore)}</p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn-sm bg-bone text-granite-900 mt-3 w-full disabled:opacity-60"
+                        disabled={writing}
+                        onClick={() => generateDraft(results.kind, s)}
+                      >
+                        {writing ? "Writing…" : "Write the email"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : null}
       </div>
 
-      {/* Stockist training */}
+      {/* Training */}
       {engineConnected ? (
         <div className="mt-8 border-2 border-granite-900 bg-bone p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-4 justify-between">
             <div>
-              <p className="kicker text-granite-500">Stockist training</p>
+              <p className="kicker text-granite-500">Training</p>
               <p className="font-display text-2xl font-medium mt-1.5">What BeeSearch learns from.</p>
               <p className="text-sm text-granite-500 mt-1.5 max-w-xl">
-                Discovery for Regional stockists needs at least {MIN_STOCKISTS_FOR_DISCOVERY} of these to learn from — you have {stockistsLoaded ? stockists.length : "…"}.
+                Discovery needs at least {MIN_TRAINING_FOR_DISCOVERY} {KIND_LABEL[trainingKind]} to learn from — you have {stockistsLoaded ? stockists.length : "…"}.
               </p>
             </div>
-            <button type="button" className="btn btn-ghost btn-sm disabled:opacity-60" onClick={handleSeedFromTrade} disabled={seedingFromTrade}>
-              {seedingFromTrade ? "Adding…" : "Seed from my trade accounts"}
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex border-2 border-granite-900" role="tablist" aria-label="Training list">
+                {(["stockist", "referral_partner"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="tab"
+                    aria-selected={trainingKind === k}
+                    className={`btn-sm px-3 py-2 font-label font-semibold text-xs ${trainingKind === k ? "bg-granite-900 text-bone" : "bg-bone text-granite-700"}`}
+                    onClick={() => setTrainingKind(k)}
+                  >
+                    {k === "stockist" ? "Stockists" : "Referral partners"}
+                  </button>
+                ))}
+              </div>
+              {trainingKind === "stockist" ? (
+                <button type="button" className="btn btn-ghost btn-sm disabled:opacity-60" onClick={handleSeedFromTrade} disabled={seedingFromTrade}>
+                  {seedingFromTrade ? "Adding…" : "Seed from my trade accounts"}
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -517,7 +548,9 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
               </span>
             ))}
             {stockistsLoaded && stockists.length === 0 ? (
-              <p className="text-xs text-granite-500">None yet — add one below, or seed from your trade accounts.</p>
+              <p className="text-xs text-granite-500">
+                None yet — add one below{trainingKind === "stockist" ? ", or seed from your trade accounts" : ""}.
+              </p>
             ) : null}
           </div>
 
@@ -529,7 +562,7 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
               <input
                 id="stockist-name"
                 className="field-input"
-                placeholder="e.g. The Local Cellar"
+                placeholder={trainingKind === "stockist" ? "e.g. The Local Cellar" : "e.g. Aisle & Oak Planning"}
                 value={newStockistName}
                 onChange={(e) => setNewStockistName(e.target.value)}
                 onKeyDown={(e) => {
@@ -551,7 +584,12 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
         <div className="mt-3 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {profiles.map((p) => (
             <div key={p.id} className="border-2 border-granite-900 bg-bone p-5">
-              <p className="font-display text-xl font-medium">{p.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-display text-xl font-medium">{p.name}</p>
+                <span className="text-[0.62rem] font-label font-bold uppercase tracking-[0.08em] border border-granite-300 px-1.5 py-0.5 text-granite-500">
+                  {p.kind === "referral_partner" ? "Referral partner" : "Stockist"}
+                </span>
+              </div>
               <p className="text-sm text-granite-700 mt-1.5 leading-relaxed">{p.who}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {p.criteria.map((c) => (
@@ -581,6 +619,13 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
                 Who it's for
               </label>
               <input id="np-who" className="field-input" placeholder="One sentence: who are they?" value={newWho} onChange={(e) => setNewWho(e.target.value)} />
+              <label className="sr-only" htmlFor="np-kind">
+                Training list
+              </label>
+              <select id="np-kind" className="field-input" value={newKind} onChange={(e) => setNewKind(e.target.value as BeeSearchKind)}>
+                <option value="stockist">Matches against stockists</option>
+                <option value="referral_partner">Matches against referral partners</option>
+              </select>
               {profileErr ? <p className="field-error">{profileErr}</p> : null}
               <button type="button" className="btn btn-dark btn-sm w-full" onClick={addCustomProfile}>
                 <PlusIcon className="w-3.5 h-3.5" /> Add this target

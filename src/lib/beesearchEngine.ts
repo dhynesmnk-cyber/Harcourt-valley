@@ -1,15 +1,20 @@
 /* ------------------------------------------------------------------ */
-/*  BeeSearch client — talks to the standalone discovery engine (built  */
-/*  on Replit, still called "bee23" on its own end) through the        */
-/*  Netlify Function proxy at /.netlify/functions/beesearch. The       */
-/*  engine's API token lives only in that function's environment;      */
-/*  nothing here ever holds a credential, so this file is safe to ship */
-/*  to the browser as-is.                                              */
-/*                                                                      */
-/*  When BEE23_ENGINE_URL / BEE23_API_TOKEN aren't set on the deploy,   */
-/*  the proxy replies 503 and every call here resolves to ok: false —   */
-/*  callers fall back to local demo behaviour rather than break.        */
+/*  BeeSearch client — talks to the in-house discovery engine (folded    */
+/*  in from the standalone Replit app; the underlying model/prompts      */
+/*  still refer to "bee23" in a few places, its original name) through   */
+/*  the Netlify Functions at /.netlify/functions/beesearch*. Every call   */
+/*  carries the caller's own Supabase session token, since these          */
+/*  functions sit directly on the database now — no credential of any     */
+/*  kind lives in this file, so it's safe to ship to the browser as-is.   */
+/*                                                                        */
+/*  When ANTHROPIC_API_KEY / SUPABASE_SERVICE_ROLE_KEY aren't set on the  */
+/*  deploy, the function replies with an error and every call here        */
+/*  resolves to ok: false — callers fall back to local demo behaviour     */
+/*  rather than break.                                                   */
 /* ------------------------------------------------------------------ */
+
+import { supabase } from "./supabase";
+import type { BeeSearchKind } from "./data";
 
 const ENDPOINT = "/.netlify/functions/beesearch";
 
@@ -45,28 +50,31 @@ type BeeSearchResult<T> =
   | { ok: false; error: string; status: number; configured: boolean };
 
 async function call<T>(action: string, params: Record<string, unknown> = {}): Promise<BeeSearchResult<T>> {
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  if (!token) return { ok: false, error: "Sign in first.", status: 401, configured: true };
+
   let res: Response;
   try {
     res = await fetch(ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ action, ...params }),
     });
   } catch {
-    return { ok: false, error: "Could not reach the engine.", status: 0, configured: true };
+    return { ok: false, error: "Could not reach BeeSearch.", status: 0, configured: true };
   }
 
   let body: any = null;
   try {
     body = await res.json();
   } catch {
-    /* non-JSON error response — fall through with body null */
+    /* non-JSON error response, or a 204/202 with no body — fall through */
   }
 
   if (!res.ok) {
     return {
       ok: false,
-      error: body?.error || `Engine request failed (${res.status})`,
+      error: body?.error || `BeeSearch request failed (${res.status})`,
       status: res.status,
       configured: body?.configured !== false,
     };
@@ -75,14 +83,14 @@ async function call<T>(action: string, params: Record<string, unknown> = {}): Pr
   return { ok: true, data: body as T };
 }
 
-/** Cheap probe: is the proxy configured and does the token work? */
+/** Cheap probe: is the function configured (Anthropic key, service role key) and reachable? */
 export async function checkEngineAvailable(): Promise<boolean> {
-  const result = await call<{ count: number }>("status");
+  const result = await call<{ ok: boolean }>("status");
   return result.ok;
 }
 
-export async function listStockists(): Promise<BeeSearchStockist[]> {
-  const result = await call<BeeSearchStockist[]>("list-stockists");
+export async function listStockists(kind: BeeSearchKind): Promise<BeeSearchStockist[]> {
+  const result = await call<BeeSearchStockist[]>("list-stockists", { kind });
   return result.ok ? result.data : [];
 }
 
@@ -91,6 +99,7 @@ export async function addStockist(input: {
   websiteUrl?: string;
   location?: string;
   category?: string;
+  kind: BeeSearchKind;
 }): Promise<BeeSearchStockist | null> {
   const result = await call<BeeSearchStockist>("add-stockist", input);
   return result.ok ? result.data : null;
@@ -101,17 +110,35 @@ export async function removeStockist(id: number): Promise<boolean> {
   return result.ok;
 }
 
-export async function runDiscovery(
-  customPrompt: string,
-): Promise<{ ok: true; count: number; basedOn: number } | { ok: false; error: string }> {
-  const result = await call<{ status: string; count: number; basedOn: number }>("run-discovery", { customPrompt });
-  if (!result.ok) return { ok: false, error: result.error };
-  return { ok: true, count: result.data.count, basedOn: result.data.basedOn };
+export async function listDiscoverySuggestions(accountType: BeeSearchKind): Promise<BeeSearchDiscoverySuggestion[]> {
+  const result = await call<BeeSearchDiscoverySuggestion[]>("list-discovery", { accountType });
+  return result.ok ? result.data : [];
 }
 
-export async function listDiscoverySuggestions(): Promise<BeeSearchDiscoverySuggestion[]> {
-  const result = await call<BeeSearchDiscoverySuggestion[]>("list-discovery");
-  return result.ok ? result.data : [];
+/**
+ * Starts discovery and waits for results to land, polling list-discovery.
+ * The pipeline (multiple AI calls + up to 30 site fetches) runs for minutes,
+ * well past what the function itself can hold a connection open for, so the
+ * server kicks off a background job and replies immediately — this just
+ * hides that handoff behind one awaitable call, same shape as before.
+ */
+export async function runDiscoveryAndWait(
+  customPrompt: string,
+  accountType: BeeSearchKind,
+  { intervalMs = 4000, timeoutMs = 120000 }: { intervalMs?: number; timeoutMs?: number } = {},
+): Promise<{ ok: true; suggestions: BeeSearchDiscoverySuggestion[] } | { ok: false; error: string }> {
+  const started = await call<{ status: string }>("run-discovery", { customPrompt, accountType });
+  if (!started.ok) return { ok: false, error: started.error };
+
+  const deadline = Date.now() + timeoutMs;
+  // First poll waits a beat — the background job needs a moment to even start.
+  await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  while (Date.now() < deadline) {
+    const suggestions = await listDiscoverySuggestions(accountType);
+    if (suggestions.some((s) => s.status === "pending")) return { ok: true, suggestions };
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return { ok: false, error: "Didn't turn up any matches in time — try again shortly, or add more to the training list." };
 }
 
 export async function addSuggestionAsAccount(
@@ -150,12 +177,12 @@ export function splitPitch(pitch: string, fallbackSubject: string): { subject: s
 const ENRICHMENT_TERMINAL_STATES = new Set(["completed", "failed", "blocked"]);
 
 /** Waits for account enrichment to finish, polling at a fixed interval.
- *  The engine's background worker only sweeps for pending accounts every 15s
- *  (see server/enrichment.ts startEnrichmentWorker), so this needs real
+ *  The scheduled worker sweeps for pending accounts once a minute (see
+ *  netlify/functions/beesearch-enrichment-worker.ts), so this needs real
  *  headroom rather than a tight timeout. */
 export async function waitForEnrichment(
   id: number,
-  { intervalMs = 3000, timeoutMs = 60000 }: { intervalMs?: number; timeoutMs?: number } = {},
+  { intervalMs = 5000, timeoutMs = 90000 }: { intervalMs?: number; timeoutMs?: number } = {},
 ): Promise<BeeSearchAccount | null> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
