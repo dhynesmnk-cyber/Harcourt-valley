@@ -107,7 +107,11 @@ interface StoreValue extends StoreState {
   resetDemo: () => boolean;
   sendDueEmails: () => number;
   dueEmails: EmailSend[];
-  addProfile: (p: Omit<BeeSearchProfile, "id">) => void;
+  addProfile: (p: Omit<BeeSearchProfile, "id">) => BeeSearchProfile;
+  updateProfile: (id: string, patch: Partial<Omit<BeeSearchProfile, "id">>) => void;
+  removeProfile: (id: string) => void;
+  /** Saves an edited draft. The user can rewrite anything before copying it out. */
+  updateOutboxDraft: (id: string, patch: { subject?: string; body?: string }) => void;
   addOutbox: (items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => void;
   setOutboxState: (id: string, state: OutboxItem["state"]) => void;
   /** Turns a "replied" outreach contact into a real pipeline lead, and marks the outbox item converted. Returns null if the item is gone. */
@@ -575,7 +579,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   /* ---------- BeeSearch (outreach) ---------- */
 
   const addProfile = useCallback((p: Omit<BeeSearchProfile, "id">) => {
-    setState((s) => ({ ...s, profiles: [...s.profiles, { ...p, id: uid() }] }));
+    const profile: BeeSearchProfile = { ...p, id: uid() };
+    setState((s) => ({ ...s, profiles: [...s.profiles, profile] }));
+    return profile;
+  }, []);
+
+  const updateProfile = useCallback((id: string, patch: Partial<Omit<BeeSearchProfile, "id">>) => {
+    setState((s) => ({ ...s, profiles: s.profiles.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+  }, []);
+
+  const removeProfile = useCallback((id: string) => {
+    setState((s) => ({ ...s, profiles: s.profiles.filter((p) => p.id !== id) }));
+  }, []);
+
+  const updateOutboxDraft = useCallback((id: string, patch: { subject?: string; body?: string }) => {
+    setState((s) => ({
+      ...s,
+      outbox: s.outbox.map((o) => (o.id === id ? { ...o, ...patch, updatedAt: new Date().toISOString() } : o)),
+    }));
   }, []);
 
   const addOutbox = useCallback((items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => {
@@ -672,6 +693,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     sendDueEmails,
     dueEmails,
     addProfile,
+    updateProfile,
+    removeProfile,
+    updateOutboxDraft,
     addOutbox,
     setOutboxState,
     convertOutboxToLead,

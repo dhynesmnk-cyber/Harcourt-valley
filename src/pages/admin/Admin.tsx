@@ -203,7 +203,7 @@ function buildTourSteps(go: (t: Tab) => void): TourStep[] {
     {
       id: "beesearch",
       title: "Going out and finding work.",
-      body: "BeeSearch works the other direction: it finds venues and stockists that look like your best customers, shows you exactly why each one matched, and the outbox holds the notes you're sending them. A reply that goes well converts straight into an enquiry in your pipeline.",
+      body: "BeeSearch works the other direction: it finds businesses that look like your best customers, shows you exactly why each one matched, and writes a first draft. It never sends anything — the outbox holds drafts for you to copy into your own email. A reply that goes well converts straight into an enquiry in your pipeline.",
       tip: "Two considered emails a week beats fifty sent in one afternoon.",
       placement: "dock",
       before: at("beesearch"),
@@ -367,7 +367,8 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
 
   const sendNow = () => {
     const n = sendDueEmails();
-    toast(n > 0 ? `${n} email${n === 1 ? "" : "s"} sent from the sequences.` : "Nothing due right now.");
+    // This flips a status flag and nothing more — the site has no mail service.
+    toast(n > 0 ? `${n} sequence email${n === 1 ? "" : "s"} marked as done. Send them from your own inbox.` : "Nothing due right now.");
   };
 
   return (
@@ -379,7 +380,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
         </div>
         {dueEmails.length > 0 ? (
           <button type="button" className="btn btn-primary" onClick={sendNow}>
-            <SendIcon className="w-4 h-4" /> Send {dueEmails.length} due email{dueEmails.length === 1 ? "" : "s"}
+            <SendIcon className="w-4 h-4" /> Mark {dueEmails.length} due email{dueEmails.length === 1 ? "" : "s"} done
           </button>
         ) : (
           <button type="button" className="btn btn-dark" onClick={() => go("pipeline")}>
@@ -490,7 +491,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <li key={o.id}>
                   <button type="button" onClick={() => go("beesearch")} className="w-full text-left px-5 py-2.5 hover:bg-granite-50 transition-colors">
                     <p className="text-sm font-label font-semibold text-granite-700 truncate">{o.business}</p>
-                    <p className="text-xs text-granite-500">{o.state === "approved" ? "Approved — ready to send" : "Replied — ready to convert"}</p>
+                    <p className="text-xs text-granite-500">{o.state === "approved" ? "Ready — copy it across" : "Replied — ready to convert"}</p>
                   </button>
                 </li>
               ))}

@@ -31,6 +31,15 @@ function stockistKind(value: unknown): db.AccountType {
   return value === "referral_partner" ? "referral_partner" : "stockist";
 }
 
+/** Target ids are client-authored strings (see src/lib/data.ts uid()). */
+function targetId(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 interface ProxyRequest {
   action: string;
   [key: string]: unknown;
@@ -59,7 +68,7 @@ export default async (req: Request): Promise<Response> => {
       }
 
       case "list-stockists": {
-        const list = await db.getStockists(stockistKind(body.kind));
+        const list = await db.getStockists(stockistKind(body.kind), targetId(body.targetId));
         return json(list);
       }
 
@@ -72,6 +81,7 @@ export default async (req: Request): Promise<Response> => {
           location: typeof body.location === "string" ? body.location.trim() || null : null,
           category: typeof body.category === "string" ? body.category.trim() || null : null,
           kind: stockistKind(body.kind),
+          targetId: targetId(body.targetId),
         });
         return json(created, 201);
       }
@@ -85,19 +95,61 @@ export default async (req: Request): Promise<Response> => {
 
       case "run-discovery": {
         // Fire the background function and return immediately — see file header.
-        const target = new URL(req.url);
-        target.pathname = target.pathname.replace(/\/beesearch$/, "/beesearch-discover-background");
-        await fetch(target.toString(), {
+        // The whole target brief goes with it: name, region, business types and
+        // notes are what the search is actually aimed with.
+        const brief = {
+          targetId: targetId(body.targetId),
+          accountType: stockistKind(body.accountType),
+          name: str(body.name) || "this target",
+          who: str(body.who),
+          region: str(body.region),
+          businessTypes: Array.isArray(body.businessTypes) ? body.businessTypes.filter((t: unknown) => typeof t === "string") : [],
+          notes: str(body.notes),
+        };
+
+        // Recorded before the job starts so the client has something to poll
+        // even if the background function dies before it can report anything.
+        const runId = await db.startDiscoveryRun(brief.targetId, brief.accountType);
+
+        const endpoint = new URL(req.url);
+        endpoint.pathname = endpoint.pathname.replace(/\/beesearch$/, "/beesearch-discover-background");
+        await fetch(endpoint.toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: req.headers.get("Authorization") ?? "" },
-          body: JSON.stringify({ customPrompt: body.customPrompt ?? "", accountType: stockistKind(body.accountType) }),
-        }).catch(() => { /* the background function's own errors surface via suggestion status, not here */ });
-        return json({ status: "started" }, 202);
+          body: JSON.stringify({ ...brief, runId }),
+        }).catch(async () => {
+          await db.finishDiscoveryRun(runId, { status: "failed", error: "The search job couldn't be started." }).catch(() => {});
+        });
+        return json({ status: "started", runId }, 202);
+      }
+
+      case "discovery-status": {
+        const run = await db.getLatestDiscoveryRun(targetId(body.targetId));
+        return json(run ?? null);
       }
 
       case "list-discovery": {
-        const list = await db.getDiscoverySuggestions(stockistKind(body.accountType));
+        const list = await db.getDiscoverySuggestions(stockistKind(body.accountType), targetId(body.targetId));
         return json(list);
+      }
+
+      case "dismiss-suggestion": {
+        const id = Number(body.id);
+        if (!Number.isFinite(id)) return json({ error: "id must be a number" }, 400);
+        // Dismissals aren't just a hide: discovery reads them back as
+        // "avoid these patterns" on the next run (see ai.ts buildExclusionSet).
+        await db.updateSuggestion(id, { status: "dismissed", dismiss_reason: str(body.reason) || null });
+        return new Response(null, { status: 204, headers: CORS });
+      }
+
+      case "remove-target": {
+        // A target's training list only means anything in the context of that
+        // target, so it goes too. Accounts and drafts already in the pipeline
+        // are real records and are deliberately left alone.
+        const id = targetId(body.id);
+        if (!id) return json({ error: "id is required" }, 400);
+        await db.deleteStockistsForTarget(id);
+        return new Response(null, { status: 204, headers: CORS });
       }
 
       case "add-suggestion": {
@@ -117,6 +169,7 @@ export default async (req: Request): Promise<Response> => {
         const account = await db.createAccount({
           accountName: suggestion.accountName, websiteUrl: normalizedUrl,
           accountType: suggestion.accountType, discoverySource: "ai_discovery",
+          targetId: suggestion.targetId,
         });
         await db.updateSuggestion(id, { status: "added" });
         return json({ account }, 201);

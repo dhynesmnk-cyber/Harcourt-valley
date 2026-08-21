@@ -165,8 +165,10 @@ export function SequencesView() {
       <p className="kicker text-granite-500">Email sequences</p>
       <h1 className="font-display text-3xl sm:text-4xl font-medium mt-1.5">The follow-up, on autopilot.</h1>
       <p className="text-sm text-granite-500 mt-2 max-w-xl">
-        When someone asks for an info pack, these emails go out on schedule. Edit the words or the delays below — changes apply to new enquiries only, and nothing sends once a
-        couple has booked.
+        When someone asks for an info pack, these are the emails to send and when to send them. The
+        site keeps the schedule; it doesn't send them — there's no mail service connected. Edit the
+        words or the delays below — changes apply to new enquiries only, and nothing is scheduled once
+        a couple has booked.
       </p>
       <div className="mt-7 space-y-8">
         {sequences.map((s) => (

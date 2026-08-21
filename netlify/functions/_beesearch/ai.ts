@@ -195,25 +195,38 @@ function buildExclusionSet(allAccounts: db.Account[], dismissed: db.DiscoverySug
   return names;
 }
 
-export async function discoverSimilarAccounts(customPrompt: string, accountType: db.AccountType): Promise<{ count: number; basedOn: number }> {
+/** What the user told us to go and look for. The engine used to receive one
+ *  sentence of free text; these are the fields the admin actually fills in. */
+export interface DiscoveryTarget {
+  targetId: string | null;
+  accountType: db.AccountType;
+  name: string;
+  who: string;
+  region: string;
+  businessTypes: string[];
+  notes: string;
+}
+
+export async function discoverSimilarAccounts(target: DiscoveryTarget): Promise<{ count: number; basedOn: number }> {
+  const { targetId, accountType } = target;
   const isReferralPartner = accountType === "referral_partner";
   const trainingNoun = isReferralPartner ? "referral partners" : "stockists";
   const businessNoun = isReferralPartner ? "wedding & event planners" : "retail businesses";
   const businessKind = isReferralPartner ? "wedding or event planning business" : "retail business";
 
-  const stockistsList = await db.getStockists(accountType);
+  const stockistsList = await db.getStockists(accountType, targetId);
   if (stockistsList.length < 5) {
-    throw new Error(`Add at least 5 ${trainingNoun} to your training list to run discovery (currently ${stockistsList.length}/5).`);
+    throw new Error(`"${target.name}" needs at least 5 training accounts before it can search — it has ${stockistsList.length}. Add the rest on the target and try again.`);
   }
 
   const topAccounts = await db.getTopAccountsByScore(accountType, 10);
   const settings = await db.getPromptSettings();
   const allAccounts = await db.getAccounts();
   const existingUrls = new Set(allAccounts.map((a) => canonicalUrl(a.websiteUrl)));
-  const dismissed = await db.getDismissedSuggestions(accountType);
+  const dismissed = await db.getDismissedSuggestions(accountType, targetId);
   const excludedNames = buildExclusionSet(allAccounts, dismissed, stockistsList);
 
-  await db.clearPendingDiscoverySuggestions(accountType);
+  await db.clearPendingDiscoverySuggestions(accountType, targetId);
 
   const strategyCounts: Record<string, number> = {};
   for (const a of topAccounts) {
@@ -242,8 +255,21 @@ export async function discoverSimilarAccounts(customPrompt: string, accountType:
   }
 
   const dismissedContext = dismissed.length > 0 ? `\nPREVIOUSLY REJECTED (avoid these patterns):\n${dismissed.map((d) => `- ${d.accountName}${d.dismissReason ? ` — ${d.dismissReason}` : ""}`).join("\n")}` : "";
-  const customPromptSection = customPrompt.trim() ? `\nUSER GUIDANCE: ${customPrompt.trim()}` : "";
-  const patternContext = `CURRENT ${trainingNoun.toUpperCase()} (${stockistsList.length}):\n${stockistSummary}\nPATTERNS: Categories: ${topCategories.map(([c, n]) => `${c}(${n})`).join(", ")} | Locations: ${topLocations.map(([l, n]) => `${l}(${n})`).join(", ")}${dismissedContext}${customPromptSection}`;
+  // The target's own settings, stated plainly. This is what the admin fills in
+  // on the target card, and it goes into every prompt below — previously all
+  // the engine got was a single "Find businesses similar to: <sentence>" line.
+  const typeList = target.businessTypes.map((t) => t.trim()).filter(Boolean);
+  const typesLine = typeList.length > 0 ? typeList.join(", ") : "(not set — infer from the training list below)";
+  const regionLine = target.region.trim() || "(not set — infer from the training list below)";
+  const targetBrief = [
+    `TARGET: ${target.name}`,
+    target.who.trim() ? `WHO THEY ARE: ${target.who.trim()}` : "",
+    `BUSINESS TYPES TO FIND: ${typesLine}`,
+    `WHERE TO LOOK: ${regionLine}`,
+    target.notes.trim() ? `OWNER'S NOTES (treat as binding): ${target.notes.trim()}` : "",
+  ].filter(Boolean).join("\n");
+
+  const patternContext = `${targetBrief}\n\nCURRENT ${trainingNoun.toUpperCase()} FOR THIS TARGET (${stockistsList.length}):\n${stockistSummary}\nPATTERNS: Categories: ${topCategories.map(([c, n]) => `${c}(${n})`).join(", ")} | Locations: ${topLocations.map(([l, n]) => `${l}(${n})`).join(", ")}${dismissedContext}`;
   const profileSummary = topAccounts.map((a) => `- ${a.accountName} (${a.websiteUrl}) — Strategy: ${a.recommendedStrategy}, Score: ${a.compositeScore}`).join("\n");
 
   const anthropic = anthropicClient();
@@ -266,7 +292,8 @@ Rules:
 - Target a specific business type AND location from the patterns in the ${trainingNoun.slice(0, -1)} list
 - Vary the queries to cover different business types and areas represented in the ${trainingNoun}
 - Queries should find individual business websites, not directories, Yelp, TripAdvisor, or social media
-${customPrompt.trim() ? `- Prioritise this guidance: ${customPrompt.trim()}` : ""}
+- Every query must pair one of the BUSINESS TYPES with a specific town, suburb or shire inside WHERE TO LOOK
+- Between them, the 6 queries should cover every listed business type at least once
 
 Return a JSON array of 6 query strings only. Return ONLY the JSON array, no markdown.`,
     }],
@@ -323,6 +350,8 @@ Rules:
 - Each must be a specific named business at a specific location — not generic descriptions
 - Do NOT include any of these: ${[...excludedNames].slice(0, 30).join(", ")}
 - Match the same types, locations, and positioning as the ${trainingNoun} list
+${target.region.trim() ? `- Every business must be inside: ${target.region.trim()}` : ""}
+${typeList.length > 0 ? `- Every business must be one of: ${typeList.join(", ")}` : ""}
 
 For each, provide: name, location, reason (1-2 sentences referencing a specific ${trainingNoun.slice(0, -1)} pattern).
 
@@ -342,7 +371,7 @@ Return a JSON array. Return ONLY the JSON array.`,
       // No URL to verify here — the AI only named a business, not a site.
       // Saved as unverified; the admin fills in a URL by hand if they draft it.
       await db.createDiscoverySuggestion({
-        accountType, accountName: s.name, websiteUrl: "", reason: s.reason || "",
+        targetId, accountType, accountName: s.name, websiteUrl: "", reason: s.reason || "",
         basedOnStrategy: topStrategies[0] || "general", relevanceScore: 50, urlVerified: "unknown", urlSource: "ai_guess",
       });
       saved++;
@@ -389,7 +418,7 @@ Below are ${pages.length} business website pages found via live web search. For 
 
 For each page return a JSON object with: pageIndex (1-based), url, businessName, relevanceScore (0-100), strategy (use from: ${topStrategies.length > 0 ? topStrategies.join(", ") : defaultStrategies}), reason (1-2 sentences), include (true if relevanceScore >= 40 and not excluded).
 
-Also set include: false if the page does not appear to be a real, operating ${businessKind}.
+Also set include: false if the page does not appear to be a real, operating ${businessKind}, or if the business is outside ${target.region.trim() || "the region implied by the training list"}, or is not one of: ${typeList.length > 0 ? typeList.join(", ") : "the business types implied by the training list"}.
 
 Return a JSON array of objects for ALL ${pages.length} pages. Return ONLY the JSON array.
 
@@ -437,7 +466,7 @@ ${snippets}`;
     let emails: string[] = [];
     try { emails = await scanWebsiteForEmails(page.url, page.content); } catch { /* bonus */ }
     await db.createDiscoverySuggestion({
-      accountType, accountName: evaluation.businessName, websiteUrl: page.url, reason: evaluation.reason || "",
+      targetId, accountType, accountName: evaluation.businessName, websiteUrl: page.url, reason: evaluation.reason || "",
       basedOnStrategy: evaluation.strategy || topStrategies[0] || "general",
       relevanceScore: Math.min(100, Math.max(0, evaluation.relevanceScore)), urlVerified: "verified", urlSource: "search", emails,
     });

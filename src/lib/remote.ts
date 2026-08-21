@@ -90,17 +90,25 @@ const toSend = (r: any): EmailSend => ({
   subject: r.subject ?? "", sendAt: r.send_at, status: r.status,
 });
 
-const profileRow = (p: BeeSearchProfile) => ({ id: p.id, name: p.name, who: p.who, criteria: p.criteria, kind: p.kind });
-const toProfile = (r: any): BeeSearchProfile => ({ id: r.id, name: r.name, who: r.who ?? "", criteria: r.criteria ?? [], kind: r.kind ?? "stockist" });
+const profileRow = (p: BeeSearchProfile) => ({
+  id: p.id, name: p.name, who: p.who, criteria: p.criteria, kind: p.kind,
+  region: p.region, business_types: p.businessTypes, notes: p.notes,
+});
+const toProfile = (r: any): BeeSearchProfile => ({
+  id: r.id, name: r.name, who: r.who ?? "", criteria: r.criteria ?? [], kind: r.kind ?? "stockist",
+  region: r.region ?? "", businessTypes: r.business_types ?? [], notes: r.notes ?? "",
+});
 
 const outboxRow = (o: OutboxItem) => ({
   id: o.id, business: o.business, contact: o.contact, subject: o.subject, body: o.body,
   matched_on: o.matchedOn ?? null, composite_score: o.compositeScore ?? null, recommended_strategy: o.recommendedStrategy ?? null,
+  website_url: o.websiteUrl ?? null, emails: o.emails ?? null,
   state: o.state, sent_at: o.sentAt, converted_lead_id: o.convertedLeadId, updated_at: o.updatedAt,
 });
 const toOutbox = (r: any): OutboxItem => ({
   id: r.id, business: r.business, contact: r.contact ?? "", subject: r.subject ?? "", body: r.body ?? "",
   matchedOn: r.matched_on ?? undefined, compositeScore: r.composite_score ?? null, recommendedStrategy: r.recommended_strategy ?? null,
+  websiteUrl: r.website_url ?? null, emails: r.emails ?? null,
   state: r.state, sentAt: r.sent_at ?? null, convertedLeadId: r.converted_lead_id ?? null, updatedAt: r.updated_at,
 });
 

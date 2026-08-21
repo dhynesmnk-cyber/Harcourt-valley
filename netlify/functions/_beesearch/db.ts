@@ -25,6 +25,7 @@ export type AccountType = "stockist" | "referral_partner";
 export interface Stockist {
   id: number;
   kind: AccountType;
+  targetId: string | null;
   businessName: string;
   websiteUrl: string | null;
   location: string | null;
@@ -66,6 +67,7 @@ export interface Account {
 
 export interface DiscoverySuggestion {
   id: number;
+  targetId: string | null;
   accountType: AccountType;
   accountName: string;
   websiteUrl: string;
@@ -92,7 +94,7 @@ export interface PromptSettings {
 }
 
 const toStockist = (r: any): Stockist => ({
-  id: r.id, kind: r.kind, businessName: r.business_name, websiteUrl: r.website_url,
+  id: r.id, kind: r.kind, targetId: r.target_id ?? null, businessName: r.business_name, websiteUrl: r.website_url,
   location: r.location, category: r.category, createdAt: r.created_at,
 });
 
@@ -110,31 +112,52 @@ const toAccount = (r: any): Account => ({
 });
 
 const toSuggestion = (r: any): DiscoverySuggestion => ({
-  id: r.id, accountType: r.account_type, accountName: r.account_name, websiteUrl: r.website_url,
+  id: r.id, targetId: r.target_id ?? null, accountType: r.account_type, accountName: r.account_name, websiteUrl: r.website_url,
   reason: r.reason, basedOnStrategy: r.based_on_strategy, relevanceScore: r.relevance_score, status: r.status,
   urlVerified: r.url_verified, urlSource: r.url_source, emails: r.emails, dismissReason: r.dismiss_reason,
   createdAt: r.created_at,
 });
 
-export async function getStockists(kind: AccountType): Promise<Stockist[]> {
-  const { data, error } = await db().from("beesearch_stockists").select("*").eq("kind", kind).order("created_at", { ascending: false });
+/** Training accounts for one target. Falls back to the whole rubric when no
+ *  target is given, which is only how pre-target rows are reached. */
+export async function getStockists(kind: AccountType, targetId?: string | null): Promise<Stockist[]> {
+  let q = db().from("beesearch_stockists").select("*").eq("kind", kind);
+  if (targetId) q = q.eq("target_id", targetId);
+  const { data, error } = await q.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(toStockist);
 }
 
-export async function getStockistCount(kind: AccountType): Promise<number> {
-  const { count, error } = await db().from("beesearch_stockists").select("id", { count: "exact", head: true }).eq("kind", kind);
+export async function getStockistCount(kind: AccountType, targetId?: string | null): Promise<number> {
+  let q = db().from("beesearch_stockists").select("id", { count: "exact", head: true }).eq("kind", kind);
+  if (targetId) q = q.eq("target_id", targetId);
+  const { count, error } = await q;
   if (error) throw new Error(error.message);
   return count ?? 0;
 }
 
-export async function createStockist(input: { businessName: string; websiteUrl?: string | null; location?: string | null; category?: string | null; kind: AccountType }): Promise<Stockist> {
+export async function createStockist(input: { businessName: string; websiteUrl?: string | null; location?: string | null; category?: string | null; kind: AccountType; targetId?: string | null }): Promise<Stockist> {
   const { data, error } = await db().from("beesearch_stockists").insert({
     business_name: input.businessName, website_url: input.websiteUrl ?? null,
     location: input.location ?? null, category: input.category ?? null, kind: input.kind,
+    target_id: input.targetId ?? null,
   }).select().single();
   if (error) throw new Error(error.message);
   return toStockist(data);
+}
+
+/** Used to check a training row belongs to the target before removing it. */
+export async function getStockist(id: number): Promise<Stockist | undefined> {
+  const { data, error } = await db().from("beesearch_stockists").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? toStockist(data) : undefined;
+}
+
+/** Removing a target takes its training list with it — that data is only
+ *  meaningful in the context of the target it was taught for. */
+export async function deleteStockistsForTarget(targetId: string): Promise<void> {
+  const { error } = await db().from("beesearch_stockists").delete().eq("target_id", targetId);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteStockist(id: number): Promise<void> {
@@ -160,9 +183,10 @@ export async function getAccountByUrl(websiteUrl: string): Promise<Account | und
   return data ? toAccount(data) : undefined;
 }
 
-export async function createAccount(input: { accountName: string; websiteUrl: string; accountType: AccountType; discoverySource?: string }): Promise<Account> {
+export async function createAccount(input: { accountName: string; websiteUrl: string; accountType: AccountType; discoverySource?: string; targetId?: string | null }): Promise<Account> {
   const { data, error } = await db().from("beesearch_accounts").insert({
     account_name: input.accountName, website_url: input.websiteUrl, account_type: input.accountType,
+    target_id: input.targetId ?? null,
     discovery_source: input.discoverySource ?? "manual", pipeline_stage: "pending", enrichment_status: "pending", primary_language: "en",
   }).select().single();
   if (error) throw new Error(error.message);
@@ -190,9 +214,10 @@ export async function getPendingEnrichments(limit: number): Promise<Account[]> {
   return (data ?? []).map(toAccount);
 }
 
-export async function getDiscoverySuggestions(accountType: AccountType): Promise<DiscoverySuggestion[]> {
-  const { data, error } = await db().from("beesearch_discovery_suggestions").select("*")
-    .eq("account_type", accountType).order("relevance_score", { ascending: false });
+export async function getDiscoverySuggestions(accountType: AccountType, targetId?: string | null): Promise<DiscoverySuggestion[]> {
+  let q = db().from("beesearch_discovery_suggestions").select("*").eq("account_type", accountType);
+  if (targetId) q = q.eq("target_id", targetId);
+  const { data, error } = await q.order("relevance_score", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(toSuggestion);
 }
@@ -203,18 +228,20 @@ export async function getSuggestion(id: number): Promise<DiscoverySuggestion | u
   return data ? toSuggestion(data) : undefined;
 }
 
-export async function getDismissedSuggestions(accountType: AccountType): Promise<DiscoverySuggestion[]> {
-  const { data, error } = await db().from("beesearch_discovery_suggestions").select("*")
-    .eq("account_type", accountType).eq("status", "dismissed");
+export async function getDismissedSuggestions(accountType: AccountType, targetId?: string | null): Promise<DiscoverySuggestion[]> {
+  let q = db().from("beesearch_discovery_suggestions").select("*").eq("account_type", accountType).eq("status", "dismissed");
+  if (targetId) q = q.eq("target_id", targetId);
+  const { data, error } = await q;
   if (error) throw new Error(error.message);
   return (data ?? []).map(toSuggestion);
 }
 
 export async function createDiscoverySuggestion(input: {
   accountType: AccountType; accountName: string; websiteUrl: string; reason: string; basedOnStrategy: string;
-  relevanceScore: number; urlVerified: string; urlSource?: string; emails?: string[];
+  relevanceScore: number; urlVerified: string; urlSource?: string; emails?: string[]; targetId?: string | null;
 }): Promise<void> {
   const { error } = await db().from("beesearch_discovery_suggestions").insert({
+    target_id: input.targetId ?? null,
     account_type: input.accountType, account_name: input.accountName, website_url: input.websiteUrl,
     reason: input.reason, based_on_strategy: input.basedOnStrategy, relevance_score: input.relevanceScore,
     status: "pending", url_verified: input.urlVerified, url_source: input.urlSource ?? null,
@@ -228,9 +255,13 @@ export async function updateSuggestion(id: number, patch: Record<string, unknown
   if (error) throw new Error(error.message);
 }
 
-export async function clearPendingDiscoverySuggestions(accountType: AccountType): Promise<void> {
-  const { error } = await db().from("beesearch_discovery_suggestions").delete()
-    .eq("account_type", accountType).neq("status", "dismissed");
+/** Clears the last run's results before a new one. MUST be scoped to the
+ *  target: several targets can share a rubric, and without the target filter a
+ *  run on one of them wipes the fresh results of every other. */
+export async function clearPendingDiscoverySuggestions(accountType: AccountType, targetId?: string | null): Promise<void> {
+  let q = db().from("beesearch_discovery_suggestions").delete().eq("account_type", accountType).neq("status", "dismissed");
+  if (targetId) q = q.eq("target_id", targetId);
+  const { error } = await q;
   if (error) throw new Error(error.message);
 }
 
@@ -263,4 +294,53 @@ export async function createPitchLibraryEntry(accountId: number, finalEmailText:
     account_id: accountId, final_email_text: finalEmailText, primary_strategy_tag: primaryStrategyTag,
   });
   if (error) throw new Error(error.message);
+}
+
+/* ---------------- discovery runs ---------------- */
+
+/**
+ * Discovery runs for minutes inside a background function, which has no way to
+ * answer the caller — it already got its 202. Without a record of the attempt,
+ * a genuine failure (no search results, an Anthropic error, a target under the
+ * training minimum) is indistinguishable from "still working", and the only
+ * thing the UI can do is time out and shrug. These rows are what let it say
+ * what actually went wrong.
+ */
+export interface DiscoveryRun {
+  id: number;
+  targetId: string | null;
+  status: "running" | "done" | "failed";
+  error: string | null;
+  found: number;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+const toRun = (r: any): DiscoveryRun => ({
+  id: r.id, targetId: r.target_id ?? null, status: r.status,
+  error: r.error ?? null, found: r.found ?? 0,
+  startedAt: r.started_at, finishedAt: r.finished_at ?? null,
+});
+
+export async function startDiscoveryRun(targetId: string | null, accountType: AccountType): Promise<number> {
+  const { data, error } = await db().from("beesearch_discovery_runs")
+    .insert({ target_id: targetId, account_type: accountType, status: "running" })
+    .select("id").single();
+  if (error) throw new Error(error.message);
+  return data.id as number;
+}
+
+export async function finishDiscoveryRun(id: number, patch: { status: "done" | "failed"; error?: string | null; found?: number }): Promise<void> {
+  const { error } = await db().from("beesearch_discovery_runs").update({
+    status: patch.status, error: patch.error ?? null, found: patch.found ?? 0, finished_at: new Date().toISOString(),
+  }).eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function getLatestDiscoveryRun(targetId: string | null): Promise<DiscoveryRun | undefined> {
+  let q = db().from("beesearch_discovery_runs").select("*");
+  q = targetId ? q.eq("target_id", targetId) : q.is("target_id", null);
+  const { data, error } = await q.order("started_at", { ascending: false }).limit(1);
+  if (error) throw new Error(error.message);
+  return data && data.length > 0 ? toRun(data[0]) : undefined;
 }
