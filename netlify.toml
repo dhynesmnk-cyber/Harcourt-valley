@@ -23,7 +23,12 @@
     # fixed allowlist would silently break those posts); 'blob:' is what the
     # product-photo uploader renders from — uploaded images are downscaled and
     # stored in the browser's IndexedDB, then displayed via object URLs.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
+    # connect-src: the backend (see BACKEND.md) is a Supabase project on its
+    # own subdomain, not this site's own origin — REST, Storage and Edge
+    # Function calls all go to https://<project-ref>.supabase.co, so 'self'
+    # alone silently blocks the entire backend, admin included, with no
+    # console error beyond a CSP violation.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; base-uri 'self'; frame-ancestors 'self'"
 
 # Crawler-facing files should not be cached for long — the sitemap changes with
 # every post, and a stale robots.txt is worse than none.
