@@ -145,7 +145,7 @@ export default function Trade() {
           </Reveal>
           <Reveal delay={160}>
             <blockquote className="border-l-2 border-ochre pl-5">
-              <p className="font-display italic text-lg text-granite-900 leading-relaxed">"The Shiraz pours well and the margin's honest. That's the whole pitch, really."</p>
+              <p className="font-display italic text-lg text-ink leading-relaxed">"The Shiraz pours well and the margin's honest. That's the whole pitch, really."</p>
               <footer className="kicker text-granite-500 mt-3">Renata · Lake View Bottle Shop</footer>
             </blockquote>
           </Reveal>

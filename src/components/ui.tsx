@@ -54,7 +54,7 @@ export function SectionHead({
             numeral used to, without shouting a number at anyone. */}
         <span className="block w-12 h-[2px] bg-gradient-to-r from-garnet to-ochre" aria-hidden="true" />
         <p className={`kicker mt-4 ${dark ? "text-granite-300" : "text-granite-500"}`}>{kicker}</p>
-        <Heading className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-granite-900"}`}>{title}</Heading>
+        <Heading className={`font-display text-3xl sm:text-5xl font-medium leading-[1.05] mt-2 ${dark ? "text-bone" : "text-ink"}`}>{title}</Heading>
         {lead ? (
           <p className={`mt-3 max-w-xl text-[0.98rem] leading-relaxed ${dark ? "text-granite-300" : "text-granite-700"}`} data-speakable>
             {lead}
@@ -376,7 +376,7 @@ export function MedalRow() {
   ];
   const row = [...medals, ...medals];
   return (
-    <div className="overflow-hidden border-y-2 border-granite-900 bg-granite-900 py-3.5" aria-label="Recent medals and ratings">
+    <div className="overflow-hidden border-y-2 border-granite-900 bg-dark py-3.5" aria-label="Recent medals and ratings">
       <div className="marquee-track gap-10">
         {row.map((m, i) => (
           <span key={i} className="kicker text-granite-100 whitespace-nowrap flex items-center gap-10">

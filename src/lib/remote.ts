@@ -1,5 +1,5 @@
 import type {
-  BeeSearchProfile, EmailSend, Lead, LeadNote, Order, OutboxItem,
+  BeeSearchAccount, EmailSend, Lead, LeadNote, Order, OutboxItem,
   Product, Sequence, SiteConfig, TradeOrder,
 } from "./data";
 import { seedConfig } from "./data";
@@ -22,7 +22,7 @@ export interface RemoteState {
   tradeOrders: TradeOrder[];
   sequences: Sequence[];
   sends: EmailSend[];
-  profiles: BeeSearchProfile[];
+  accounts: BeeSearchAccount[];
   outbox: OutboxItem[];
   config: SiteConfig;
 }
@@ -90,9 +90,13 @@ const toSend = (r: any): EmailSend => ({
   subject: r.subject ?? "", sendAt: r.send_at, status: r.status,
 });
 
-const profileRow = (p: BeeSearchProfile) => ({ id: p.id, name: p.name, who: p.who, kind: p.kind, criteria: p.criteria });
-const toProfile = (r: any): BeeSearchProfile => ({
-  id: r.id, name: r.name, who: r.who ?? "", kind: r.kind === "planner" ? "planner" : "stockist", criteria: r.criteria ?? [],
+const accountRow = (a: BeeSearchAccount) => ({
+  id: a.id, business: a.business, contact: a.contact, email: a.email, phone: a.phone,
+  town: a.town, kind: a.kind, notes: a.notes, added_at: a.addedAt,
+});
+const toAccount = (r: any): BeeSearchAccount => ({
+  id: r.id, business: r.business, contact: r.contact ?? "", email: r.email ?? "", phone: r.phone ?? "",
+  town: r.town ?? "", kind: r.kind === "planner" ? "planner" : "stockist", notes: r.notes ?? "", addedAt: r.added_at,
 });
 
 const outboxRow = (o: OutboxItem) => ({
@@ -117,7 +121,7 @@ const toOutbox = (r: any): OutboxItem => ({
 export async function hydrate(): Promise<RemoteState | null> {
   if (!supabase) return null;
 
-  const [products, leads, notes, orders, tradeOrders, sequences, sends, profiles, outbox, config] = await Promise.all([
+  const [products, leads, notes, orders, tradeOrders, sequences, sends, accounts, outbox, config] = await Promise.all([
     supabase.from("products").select("*"),
     supabase.from("leads").select("*").order("created_at", { ascending: false }),
     supabase.from("lead_notes").select("*").order("created_at", { ascending: false }),
@@ -125,7 +129,7 @@ export async function hydrate(): Promise<RemoteState | null> {
     supabase.from("trade_orders").select("*").order("created_at", { ascending: false }),
     supabase.from("sequences").select("*"),
     supabase.from("email_sends").select("*"),
-    supabase.from("beesearch_profiles").select("*"),
+    supabase.from("beesearch_accounts").select("*"),
     supabase.from("outbox").select("*"),
     supabase.from("site_config").select("data").eq("id", 1).maybeSingle(),
   ]);
@@ -145,7 +149,7 @@ export async function hydrate(): Promise<RemoteState | null> {
     tradeOrders: (tradeOrders.data ?? []).map(toTrade),
     sequences: (sequences.data ?? []).map(toSequence),
     sends: (sends.data ?? []).map(toSend),
-    profiles: (profiles.data ?? []).map(toProfile),
+    accounts: (accounts.data ?? []).map(toAccount),
     outbox: (outbox.data ?? []).map(toOutbox),
     config: { ...seedConfig(), ...((config.data?.data as SiteConfig) ?? {}) },
   };
@@ -233,7 +237,7 @@ export async function syncState(prev: RemoteState, next: RemoteState, isAdmin: b
     push("trade_orders", prev.tradeOrders, next.tradeOrders, tradeRow, errors),
     push("sequences", prev.sequences, next.sequences, sequenceRow, errors),
     push("email_sends", prev.sends, next.sends, sendRow, errors),
-    push("beesearch_profiles", prev.profiles, next.profiles, profileRow, errors),
+    push("beesearch_accounts", prev.accounts, next.accounts, accountRow, errors),
     push("outbox", prev.outbox, next.outbox, outboxRow, errors),
   ]);
 

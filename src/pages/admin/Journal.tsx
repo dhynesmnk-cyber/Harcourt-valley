@@ -304,7 +304,7 @@ function Editor({ post, onDone }: { post: BlogPost; onDone: () => void }) {
                     {c.ok ? <Tick className="w-3 h-3" /> : null}
                   </span>
                   <span>
-                    <span className={`block font-label font-semibold text-sm ${c.ok ? "text-granite-900" : "text-granite-700"}`}>{c.label}</span>
+                    <span className={`block font-label font-semibold text-sm ${c.ok ? "text-ink" : "text-granite-700"}`}>{c.label}</span>
                     <span className="block text-xs text-granite-500 mt-0.5">{c.note}</span>
                   </span>
                   <span className="sr-only">{c.ok ? "Done" : "Not yet"}</span>
@@ -402,7 +402,7 @@ export function JournalView() {
                   type="button"
                   onClick={() => setSelectedId(p.id)}
                   aria-current={selectedId === p.id ? "true" : undefined}
-                  className={`w-full text-left px-4 py-3 flex gap-3 items-start transition-colors ${selectedId === p.id ? "bg-granite-900 text-bone" : "hover:bg-granite-100"}`}
+                  className={`w-full text-left px-4 py-3 flex gap-3 items-start transition-colors ${selectedId === p.id ? "bg-dark text-bone" : "hover:bg-granite-100"}`}
                 >
                   <PostThumb post={p} />
                   <span className="min-w-0">

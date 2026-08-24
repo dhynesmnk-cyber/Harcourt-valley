@@ -1,10 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BeeSearchProfile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
+  BeeSearchAccount, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
   ProductImage, Sequence, SequenceStep, SiteConfig, SiteImageKey, TradeOrder,
   IMG, FONT_CATALOG, PALETTE_CATALOG, referencedImageIds,
-  DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
-  seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
+  DAY, dstr, iso, readingMinutes, seedAccounts, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
+  seedProducts, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
 import { isRemote, supabase } from "./supabase";
 import { hydrate, syncState } from "./remote";
@@ -18,7 +18,7 @@ interface StoreState {
   tradeOrders: TradeOrder[];
   sequences: Sequence[];
   sends: EmailSend[];
-  profiles: BeeSearchProfile[];
+  accounts: BeeSearchAccount[];
   outbox: OutboxItem[];
   posts: BlogPost[];
   config: SiteConfig;
@@ -35,7 +35,7 @@ function freshState(): StoreState {
     tradeOrders: seedTradeOrders(),
     sequences: seedSequences(),
     sends: seedSends(),
-    profiles: seedProfiles(),
+    accounts: seedAccounts(),
     outbox: seedOutbox(),
     posts: seedPosts(),
     config: seedConfig(),
@@ -116,7 +116,9 @@ interface StoreValue extends StoreState {
   resetDemo: () => boolean;
   sendDueEmails: () => number;
   dueEmails: EmailSend[];
-  addProfile: (p: Omit<BeeSearchProfile, "id">) => void;
+  addAccount: (a: Omit<BeeSearchAccount, "id" | "addedAt">) => void;
+  updateAccount: (id: string, patch: Partial<BeeSearchAccount>) => void;
+  removeAccount: (id: string) => void;
   addOutbox: (items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => void;
   setOutboxState: (id: string, state: OutboxItem["state"]) => void;
   /** Turns a "replied" outreach contact into a real pipeline lead, and marks the outbox item converted. Returns null if the item is gone. */
@@ -193,7 +195,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             tradeOrders: remote.tradeOrders.length ? remote.tradeOrders : s.tradeOrders,
             sequences: remote.sequences.length ? remote.sequences : s.sequences,
             sends: remote.sends.length ? remote.sends : s.sends,
-            profiles: remote.profiles.length ? remote.profiles : s.profiles,
+            accounts: remote.accounts.length ? remote.accounts : s.accounts,
             outbox: remote.outbox.length ? remote.outbox : s.outbox,
             // The journal has no table yet — posts stay local until the
             // backend grows one, same as product photo metadata.
@@ -639,8 +641,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   /* ---------- BeeSearch (outreach) ---------- */
 
-  const addProfile = useCallback((p: Omit<BeeSearchProfile, "id">) => {
-    setState((s) => ({ ...s, profiles: [...s.profiles, { ...p, id: uid() }] }));
+  const addAccount = useCallback((a: Omit<BeeSearchAccount, "id" | "addedAt">) => {
+    setState((s) => ({ ...s, accounts: [...s.accounts, { ...a, id: uid(), addedAt: new Date().toISOString() }] }));
+  }, []);
+
+  const updateAccount = useCallback((id: string, patch: Partial<BeeSearchAccount>) => {
+    setState((s) => ({ ...s, accounts: s.accounts.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
+  }, []);
+
+  const removeAccount = useCallback((id: string) => {
+    setState((s) => ({ ...s, accounts: s.accounts.filter((a) => a.id !== id) }));
   }, []);
 
   const addOutbox = useCallback((items: Omit<OutboxItem, "id" | "updatedAt" | "state" | "sentAt" | "convertedLeadId">[]) => {
@@ -741,7 +751,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     resetDemo,
     sendDueEmails,
     dueEmails,
-    addProfile,
+    addAccount,
+    updateAccount,
+    removeAccount,
     addOutbox,
     setOutboxState,
     convertOutboxToLead,
@@ -788,7 +800,7 @@ export function useVariant(): [string, (v: string) => void] {
   return [variant, set];
 }
 
-/* Applies CMS appearance choices (palette + display font) to the document root. */
+/* Applies CMS appearance choices (palette, font, and the independent text/background colours) to the document root. */
 export function useApplyAppearance() {
   const { config } = useStore();
   useEffect(() => {
@@ -799,7 +811,10 @@ export function useApplyAppearance() {
     root.style.setProperty("--acc-vine", palette.vine);
     root.style.setProperty("--acc-ochre", palette.ochre);
     root.style.setProperty("--display-font", font.family);
-  }, [config.palette, config.displayFont]);
+    root.style.setProperty("--text-ink", config.textColor);
+    root.style.setProperty("--bg-light", config.bgLight);
+    root.style.setProperty("--bg-dark", config.bgDark);
+  }, [config.palette, config.displayFont, config.textColor, config.bgLight, config.bgDark]);
 }
 
 export { iso };

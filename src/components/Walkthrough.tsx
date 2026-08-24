@@ -238,7 +238,7 @@ export function Walkthrough({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-2.5 right-2.5 w-8 h-8 grid place-items-center text-granite-500 hover:text-granite-900 hover:bg-granite-100 transition-colors"
+          className="absolute top-2.5 right-2.5 w-8 h-8 grid place-items-center text-granite-500 hover:text-ink hover:bg-granite-100 transition-colors"
           aria-label="Skip the walkthrough"
         >
           <CloseIcon className="w-4 h-4" />
@@ -248,7 +248,7 @@ export function Walkthrough({
           <p className="kicker text-granite-500 text-[0.6rem]">
             Step {i + 1} of {steps.length}
           </p>
-          <h2 id="tour-title" className="font-display text-[1.6rem] leading-tight font-medium mt-2 text-granite-900">
+          <h2 id="tour-title" className="font-display text-[1.6rem] leading-tight font-medium mt-2 text-ink">
             {step.title}
           </h2>
           <p className="mt-2.5 text-[0.94rem] leading-relaxed text-granite-700">{step.body}</p>

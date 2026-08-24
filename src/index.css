@@ -6,12 +6,21 @@
   --color-granite-500: #6e665a;
   --color-granite-300: #b9b0a2;
   --color-granite-100: #e8e2d6;
-  --color-bone: #f6f2e9;
+  /* bone is var-backed too — it's the site's whole light surface (page background,
+     text-on-dark, and every bg-bone card/button), so the admin's "light background"
+     picker just repaints this one value rather than touching every call site. */
+  --color-bone: var(--bg-light, #f6f2e9);
 
   /* Accents are var-backed so the admin "appearance" presets can repaint them live. */
   --color-garnet: var(--acc-garnet, #67252f);
   --color-vine: var(--acc-vine, #4c5b3f);
   --color-ochre: var(--acc-ochre, #b77a2e);
+
+  /* ink = body/heading text only; dark = large dark surfaces (nav, footer, .btn-dark).
+     granite-900 itself stays fixed — every border, shadow and hairline keeps its
+     original value no matter what the admin picks for these two. */
+  --color-ink: var(--text-ink, #26231f);
+  --color-dark: var(--bg-dark, #26231f);
 
   --font-display: var(--display-font, "Fraunces"), Georgia, "Times New Roman", serif;
   --font-label: "Space Grotesk", "Inter", system-ui, sans-serif;
@@ -25,6 +34,9 @@
   --acc-vine: #4c5b3f;
   --acc-ochre: #b77a2e;
   --display-font: "Fraunces";
+  --bg-light: #f6f2e9;
+  --text-ink: #26231f;
+  --bg-dark: #26231f;
 }
 
 html {
@@ -34,7 +46,7 @@ html {
 
 body {
   background-color: var(--color-bone);
-  color: var(--color-granite-900);
+  color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 16.5px;
   line-height: 1.65;
@@ -128,7 +140,7 @@ body::after {
     padding: 0.7rem 1.5rem;
     border: 2px solid var(--color-granite-900);
     background: transparent;
-    color: var(--color-granite-900);
+    color: var(--color-ink);
     cursor: pointer;
     transition:
       transform 0.18s var(--ease-soft),
@@ -159,7 +171,7 @@ body::after {
     box-shadow: 4px 4px 0 0 var(--color-granite-900);
   }
   .btn-dark {
-    background: var(--color-granite-900);
+    background: var(--color-dark);
     color: var(--color-bone);
   }
   .btn-dark:hover {
@@ -203,7 +215,7 @@ body::after {
     width: 100%;
     border: 2px solid var(--color-granite-900);
     background: var(--color-bone);
-    color: var(--color-granite-900);
+    color: var(--color-ink);
     padding: 0.65rem 0.9rem;
     min-height: 48px;
     font-size: 0.95rem;

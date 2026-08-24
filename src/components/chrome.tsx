@@ -11,11 +11,11 @@ import { ArrowRight, BasketIcon, CloseIcon, FieldText, MailIcon, MenuIcon, Minus
 export function Wordmark({ dark = false }: { dark?: boolean }) {
   return (
     <span className="flex items-center gap-3">
-      <span className={`grid place-items-center w-10 h-10 border-2 ${dark ? "border-bone text-bone" : "border-granite-900 text-granite-900"}`}>
+      <span className={`grid place-items-center w-10 h-10 border-2 ${dark ? "border-bone text-bone" : "border-granite-900 text-ink"}`}>
         <span className="font-display italic font-medium text-lg leading-none pt-0.5">HV</span>
       </span>
       <span className="leading-none">
-        <span className={`block font-label font-bold tracking-[0.18em] text-[0.82rem] ${dark ? "text-bone" : "text-granite-900"}`}>HARCOURT VALLEY</span>
+        <span className={`block font-label font-bold tracking-[0.18em] text-[0.82rem] ${dark ? "text-bone" : "text-ink"}`}>HARCOURT VALLEY</span>
         <span className={`block font-label tracking-[0.3em] text-[0.56rem] mt-1 ${dark ? "text-granite-300" : "text-granite-500"}`}>VINEYARDS · HARCOURT, VIC</span>
       </span>
     </span>
@@ -65,7 +65,7 @@ export function Header() {
           </Link>
           <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link kicker text-granite-900 ${isActive ? "" : "text-granite-700"}`} data-active={location.pathname.startsWith(n.to)}>
+              <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link kicker text-ink ${isActive ? "" : "text-granite-700"}`} data-active={location.pathname.startsWith(n.to)}>
                 {n.label}
               </NavLink>
             ))}
@@ -99,7 +99,7 @@ export function Header() {
       </header>
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-[60] bg-granite-900 text-bone flex flex-col" role="dialog" aria-modal="true" aria-label="Menu">
+        <div className="fixed inset-0 z-[60] bg-dark text-bone flex flex-col" role="dialog" aria-modal="true" aria-label="Menu">
           <div className="h-[72px] px-4 sm:px-6 flex items-center justify-between border-b border-granite-700">
             <Wordmark dark />
             <button type="button" onClick={() => setMenuOpen(false)} className="btn btn-sm text-bone border-bone/60 hover:bg-granite-700" aria-label="Close menu">
@@ -133,7 +133,7 @@ export function Header() {
 
 export function Footer() {
   return (
-    <footer className="bg-granite-900 text-bone mt-24">
+    <footer className="bg-dark text-bone mt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid gap-10 md:grid-cols-12">
         <div className="md:col-span-4">
           <Wordmark dark />
@@ -223,7 +223,7 @@ export function VariantToggle({ variant, onChange }: { variant: string; onChange
             onClick={() => onChange(o.v)}
             aria-pressed={variant === o.v}
             className={`px-3 py-1.5 font-label text-[0.68rem] font-semibold uppercase tracking-[0.08em] transition-colors ${
-              variant === o.v ? "bg-granite-900 text-bone" : "text-granite-700 hover:bg-granite-100"
+              variant === o.v ? "bg-dark text-bone" : "text-granite-700 hover:bg-granite-100"
             } ${o.v === "b" ? "border-l-2 border-granite-900" : ""}`}
           >
             {o.label}
@@ -241,7 +241,7 @@ export function ToastHost() {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[95] flex flex-col items-center gap-2 pointer-events-none" aria-live="polite">
       {toasts.map((t) => (
-        <div key={t.id} className="toast-in flex items-center gap-3 bg-granite-900 text-bone border-2 border-bone/20 px-5 py-3 shadow-hard-sm max-w-[92vw]">
+        <div key={t.id} className="toast-in flex items-center gap-3 bg-dark text-bone border-2 border-bone/20 px-5 py-3 shadow-hard-sm max-w-[92vw]">
           <Tick className="w-4 h-4 text-ochre shrink-0" />
           <p className="text-sm font-medium">{t.msg}</p>
         </div>
@@ -308,7 +308,7 @@ export function CartDrawer() {
 
   return (
     <div className="fixed inset-0 z-[70]">
-      <button type="button" aria-label="Close cart" onClick={() => setCartOpen(false)} className="absolute inset-0 bg-granite-900/55 fade-in cursor-default" />
+      <button type="button" aria-label="Close cart" onClick={() => setCartOpen(false)} className="absolute inset-0 bg-dark/55 fade-in cursor-default" />
       <aside className="drawer-in absolute right-0 top-0 h-full w-full max-w-md bg-bone border-l-2 border-granite-900 flex flex-col" role="dialog" aria-modal="true" aria-label="Your case">
         <div className="h-[64px] px-5 flex items-center justify-between border-b-2 border-granite-900 shrink-0">
           <h2 className="font-display text-2xl font-medium">{step === "done" ? "On its way" : "Your case"}</h2>

@@ -113,7 +113,7 @@ export default function Weddings() {
               We've been hosting weddings here long enough to know the light at every hour, which corner the wind dies in, and exactly how long it takes to get 120 people from
               the ceremony rows to the first pour.
             </p>
-            <p className="font-display italic text-xl text-granite-900">"You'll know within ten minutes of standing here. Couples always do."</p>
+            <p className="font-display italic text-xl text-ink">"You'll know within ten minutes of standing here. Couples always do."</p>
           </div>
           <div className="mt-9 border-t-2 border-granite-300 pt-7">
             <TypedLines page="weddings" />
@@ -142,7 +142,7 @@ export default function Weddings() {
           {config.weddingBallparks.map((b, i) => (
             <Reveal key={b.label} delay={i * 70}>
               <div className="grid md:grid-cols-[1.2fr_0.8fr_1.2fr] gap-2 md:gap-8 px-6 sm:px-8 py-5 items-baseline hover:bg-granite-100/60 transition-colors">
-                <p className="font-label font-semibold text-granite-900">{b.label}</p>
+                <p className="font-label font-semibold text-ink">{b.label}</p>
                 <p className="font-display text-2xl sm:text-3xl font-medium text-garnet">{b.range}</p>
                 <p className="text-sm text-granite-500">{b.note}</p>
               </div>
@@ -220,7 +220,7 @@ export default function Weddings() {
                 </li>
               </ul>
             </div>
-            <div className="mt-6 border-2 border-granite-900 bg-granite-900 text-bone p-6 sm:p-7">
+            <div className="mt-6 border-2 border-granite-900 bg-dark text-bone p-6 sm:p-7">
               <p className="kicker text-granite-300">How the info pack works</p>
               <ol className="mt-4 space-y-3 text-sm text-granite-100">
                 <li className="flex gap-3">
