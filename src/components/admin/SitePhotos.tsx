@@ -10,13 +10,14 @@ import { CloseIcon, Tick, UploadIcon } from "../ui";
 /*  picker needing to know about that.                                  */
 /* ------------------------------------------------------------------ */
 
-export function SiteImageOption({ imgKey, selected, onSelect }: { imgKey: SiteImageKey; selected: boolean; onSelect: () => void }) {
+export function SiteImageOption({ imgKey, currentValue, onSelect }: { imgKey: SiteImageKey; currentValue: string; onSelect: (src: string) => void }) {
   const src = useSiteImage(imgKey);
   const label = SITE_IMAGE_LABELS[imgKey];
+  const selected = currentValue === src;
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={() => onSelect(src)}
       aria-pressed={selected}
       className={`border-2 overflow-hidden text-left transition-all ${selected ? "border-granite-900 shadow-hard-sm" : "border-granite-300 hover:border-granite-900"}`}
     >

@@ -97,6 +97,8 @@ interface StoreValue extends StoreState {
   setPrimaryImage: (productId: string, imageId: string) => void;
   moveProductImage: (productId: string, imageId: string, direction: -1 | 1) => void;
   updateImageAlt: (productId: string, imageId: string, alt: string) => void;
+  /** One-off upload for a spot that isn't a fixed slot — e.g. a journal post's photo. Returns an id useStoredImage can resolve. */
+  uploadImage: (scope: string, file: File) => Promise<{ ok: true; id: string } | { ok: false; error: string }>;
   /** Replaces one of the site's built-in stock photos (see IMG/SiteImageKey) with an uploaded one, everywhere it's used. */
   setSiteImage: (key: SiteImageKey, file: File) => Promise<{ ok: boolean; error?: string }>;
   /** Drops back to the built-in stock photo for that slot. */
@@ -479,6 +481,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   /* ---------- site-wide photos ---------- */
 
+  /** One-off upload for a spot that isn't a fixed slot — e.g. a journal post's photo. Doesn't touch any state itself. */
+  const uploadImage = useCallback(async (scope: string, file: File): Promise<{ ok: true; id: string } | { ok: false; error: string }> => {
+    try {
+      const prepared = await prepareImage(file);
+      const id = await storeImage(scope, prepared.blob);
+      return { ok: true, id };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "That photo couldn't be uploaded." };
+    }
+  }, []);
+
   const setSiteImage = useCallback(async (key: SiteImageKey, file: File): Promise<{ ok: boolean; error?: string }> => {
     try {
       const prepared = await prepareImage(file);
@@ -714,6 +727,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setPrimaryImage,
     moveProductImage,
     updateImageAlt,
+    uploadImage,
     setSiteImage,
     resetSiteImage,
     setCustomHeroImage,

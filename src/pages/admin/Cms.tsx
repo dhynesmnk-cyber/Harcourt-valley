@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { IMG, TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
+import { TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
 import { useStore } from "../../lib/store";
 import { useStoredImage } from "../../lib/media";
 import { PlusIcon, TrashIcon, UploadIcon } from "../../components/ui";
@@ -416,7 +416,7 @@ function AppearanceTab() {
         <div className="p-5">
           <div className="grid sm:grid-cols-3 gap-4">
             {heroOptions.map((key) => (
-              <SiteImageOption key={key} imgKey={key} selected={!customHeroUrl && heroImage === IMG[key]} onSelect={() => setHeroImage(IMG[key])} />
+              <SiteImageOption key={key} imgKey={key} currentValue={customHeroUrl ? "" : heroImage} onSelect={(src) => setHeroImage(src)} />
             ))}
           </div>
           <div className="mt-5 pt-5 border-t border-granite-300 flex flex-wrap items-center gap-4">

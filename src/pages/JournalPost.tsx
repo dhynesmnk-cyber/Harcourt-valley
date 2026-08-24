@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { bodyToText, fmtPostDate, publishedPosts } from "../lib/data";
 import { useApplyAppearance, useStore } from "../lib/store";
+import { useStoredImage } from "../lib/media";
 import { useSeo, breadcrumbSchema } from "../lib/seo";
 import { BUSINESS, SITE_NAME, absUrl, fullAddress } from "../lib/site";
 import { ArrowRight, ClockIcon, ContourDivider, PinIcon, Reveal } from "../components/ui";
@@ -22,12 +23,13 @@ export default function JournalPost() {
   }, [live, post]);
 
   const url = `/journal/${post?.slug ?? ""}`;
+  const resolvedImage = useStoredImage(post?.image) ?? post?.image;
 
   useSeo({
     title: post?.title ?? "Journal",
     description: post?.excerpt ?? "An article from Harcourt Valley Vineyards.",
     path: url,
-    image: post?.image,
+    image: resolvedImage,
     imageAlt: post?.imageAlt,
     type: "article",
     noindex: !post,
@@ -46,7 +48,7 @@ export default function JournalPost() {
             keywords: post.tags.join(", "),
             url: absUrl(url),
             mainEntityOfPage: { "@type": "WebPage", "@id": absUrl(url) },
-            image: { "@type": "ImageObject", url: post.image, caption: post.imageAlt },
+            image: { "@type": "ImageObject", url: resolvedImage, caption: post.imageAlt },
             datePublished: post.publishedAt,
             dateModified: post.updatedAt,
             wordCount: bodyToText(post.body).split(/\s+/).filter(Boolean).length,
@@ -101,7 +103,7 @@ export default function JournalPost() {
         <figure className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
           <div className="img-frame border-2 border-granite-900 shadow-hard">
             <img
-              src={post.image}
+              src={resolvedImage}
               alt={post.imageAlt}
               className="w-full h-[260px] sm:h-[440px] object-cover img-in"
               width={1600}
