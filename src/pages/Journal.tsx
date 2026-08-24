@@ -95,11 +95,11 @@ export default function Journal() {
         {visible.length === 0 ? (
           <EmptyState title="Nothing published here yet." note="New pieces land after each vintage, and whenever we learn something worth passing on." />
         ) : (
-          <div className="grid lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <Reveal className="lg:col-span-7">
               <PostCard post={lead} size="lg" />
             </Reveal>
-            <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-8 content-start">
+            <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-8 content-start">
               {rest.slice(0, 2).map((p, i) => (
                 <Reveal key={p.id} delay={80 + i * 80}>
                   <PostCard post={p} />
