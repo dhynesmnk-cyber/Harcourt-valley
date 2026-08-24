@@ -14,6 +14,21 @@ export const IMG = {
   bottles: "https://image.qwenlm.ai/generated-images/1924b912-5e4c-494a-891a-14c50bceb47d/_result.png",
 } as const;
 
+/** The stock photography used across the public pages — each one individually replaceable from the admin. */
+export type SiteImageKey = keyof typeof IMG;
+
+export const SITE_IMAGE_LABELS: Record<SiteImageKey, string> = {
+  vines: "Vine rows at dusk",
+  cellarDoor: "The cellar door pour",
+  wedding: "Ceremony in the vines",
+  longTable: "The long table",
+  barrels: "Barrels in the cellar",
+  granite: "Granite & gums",
+  bottles: "The full range",
+};
+
+export const SITE_IMAGE_KEYS = Object.keys(SITE_IMAGE_LABELS) as SiteImageKey[];
+
 export type LeadType = "wedding" | "event" | "trade";
 export type EventSubtype = "party" | "dinner" | "launch" | "retreat";
 export type LeadStatus = "new" | "info_sent" | "visiting" | "negotiating" | "booked" | "archived";
@@ -251,6 +266,10 @@ export interface SiteConfig {
   heroHeadline: string;
   heroSub: string;
   heroImage: string;
+  /** An uploaded photo standing in for heroImage on the homepage, if the client has replaced it. */
+  customHeroImage: string | null;
+  /** Admin-uploaded replacements for the built-in stock photos (IMG), keyed by slot. Missing = still the stock shot. */
+  siteImages: Partial<Record<SiteImageKey, string>>;
   weddingsHeadline: string;
   weddingBallparks: Ballpark[];
   eventBallparks: Ballpark[];
@@ -649,6 +668,8 @@ export function seedConfig(): SiteConfig {
     heroHeadline: "Award-winning wine, grown on granite.",
     heroSub: "A working family vineyard in Harcourt — cellar door, weddings in the vines, and long tables under the granite hills. Ninety minutes from Melbourne, thirty from Bendigo.",
     heroImage: IMG.vines,
+    customHeroImage: null,
+    siteImages: {},
     weddingsHeadline: "Get married in the vines.",
     weddingBallparks: [
       { label: "Ceremony + reception, 80–120 guests", range: "$8,900 – $12,400", note: "Depends on season and day of week. Saturdays in autumn cost the most." },

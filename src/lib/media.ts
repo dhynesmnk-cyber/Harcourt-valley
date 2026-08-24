@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isRemote, supabase } from "./supabase";
 
 /* ------------------------------------------------------------------ */
 /*  Uploaded image storage.                                            */
@@ -9,14 +10,57 @@ import { useEffect, useState } from "react";
 /*  eight products would blow it — and the failure mode is setItem()   */
 /*  throwing, which would take the leads and orders down with it.      */
 /*                                                                     */
-/*  So the bytes live in IndexedDB as Blobs (no base64 tax, quota in   */
-/*  the hundreds of MB) and only the metadata — id, alt, dimensions —  */
-/*  goes in the state that localStorage holds.                         */
+/*  So in demo mode the bytes live in IndexedDB as Blobs (no base64    */
+/*  tax, quota in the hundreds of MB) and only the metadata — id, alt,  */
+/*  dimensions — goes in the state that localStorage holds.            */
 /*                                                                     */
-/*  Production note: this is still a browser-local store. Moving to    */
-/*  Supabase means swapping putImage/getImageBlob for Storage calls    */
-/*  and keeping the same ProductImage metadata.                        */
+/*  With a backend connected, storeImage() instead uploads to a public */
+/*  Supabase Storage bucket and hands back that file's public URL —    */
+/*  otherwise an uploaded photo would only ever exist in the admin's   */
+/*  own browser and never actually reach a real site visitor. See      */
+/*  storeImage/removeStoredImage below and useStoredImage, which        */
+/*  treats an http(s) id as a URL to use directly.                      */
 /* ------------------------------------------------------------------ */
+
+const BUCKET = "site-media";
+
+const isUrl = (id: string) => /^https?:\/\//.test(id);
+
+function randomKey(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Uploads a prepared image blob and returns an id `useStoredImage` can
+ * resolve later — a public Storage URL when a backend is connected, or an
+ * IndexedDB key in demo mode. `scope` is a path prefix (e.g. `products/123`)
+ * kept only to namespace Storage objects; it's ignored in demo mode.
+ */
+export async function storeImage(scope: string, blob: Blob): Promise<string> {
+  if (isRemote && supabase) {
+    const ext = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
+    const path = `${scope}/${randomKey()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, upsert: true });
+    if (error) throw new Error(error.message);
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+  const id = randomKey();
+  await putImage(id, blob);
+  return id;
+}
+
+/** Removes whatever storeImage() produced — a Storage object or a local blob. Best-effort. */
+export async function removeStoredImage(id: string): Promise<void> {
+  if (isUrl(id)) {
+    if (!supabase) return;
+    const marker = `/object/public/${BUCKET}/`;
+    const at = id.indexOf(marker);
+    if (at === -1) return;
+    await supabase.storage.from(BUCKET).remove([id.slice(at + marker.length)]).catch(() => undefined);
+    return;
+  }
+  await deleteImage(id);
+}
 
 const DB_NAME = "hv-media";
 const DB_VERSION = 1;
@@ -127,11 +171,19 @@ export async function pruneOrphans(keepIds: string[]): Promise<number> {
 
 /** Resolves a stored image id to a displayable URL. Returns null while loading or if missing. */
 export function useStoredImage(id: string | null | undefined): string | null {
-  const [url, setUrl] = useState<string | null>(() => (id ? urlCache.get(id) ?? null : null));
+  const [url, setUrl] = useState<string | null>(() => {
+    if (!id) return null;
+    return isUrl(id) ? id : urlCache.get(id) ?? null;
+  });
 
   useEffect(() => {
     if (!id) {
       setUrl(null);
+      return;
+    }
+    // A Storage (or hand-pasted) URL is already displayable — no IndexedDB round-trip needed.
+    if (isUrl(id)) {
+      setUrl(id);
       return;
     }
     const cached = urlCache.get(id);
