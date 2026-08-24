@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { IMG, type EventSubtype } from "../lib/data";
-import { useApplyAppearance, useStore } from "../lib/store";
+import { type EventSubtype, type SiteImageKey } from "../lib/data";
+import { useApplyAppearance, useSiteImage, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
 import { AnchorLink, ArrowRight, ClockIcon, FaqList, MailIcon, PinIcon, Reveal, SectionHead } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
@@ -13,7 +13,7 @@ interface EventTypeSection {
   name: string;
   kicker: string;
   copy: string;
-  img: string;
+  imgKey: SiteImageKey;
   alt: string;
 }
 
@@ -23,7 +23,7 @@ const SECTIONS: EventTypeSection[] = [
     name: "Parties & long lunches",
     kicker: "Birthdays · anniversaries · any excuse",
     copy: "A long table in the garden or the function room, grazing food or something cooked, and our wine poured by the people who made it. You bring the people; the valley does the rest.",
-    img: IMG.longTable,
+    imgKey: "longTable",
     alt: "Long table dressed for a celebration under festoon lights",
   },
   {
@@ -31,7 +31,7 @@ const SECTIONS: EventTypeSection[] = [
     name: "Long-table dinners",
     kicker: "40–80 guests · five courses · matched pours",
     copy: "One table, candles, and a menu built around what's in season and what's in barrel. Readings between courses are welcome — it's been done, it worked.",
-    img: IMG.barrels,
+    imgKey: "barrels",
     alt: "Oak barrels in the granite cellar where dinner wines rest",
   },
   {
@@ -39,7 +39,7 @@ const SECTIONS: EventTypeSection[] = [
     name: "Launches & brand days",
     kicker: "Products · films · collections",
     copy: "Standing format, power for your setup, festoon lights already rigged, and a backdrop that doesn't need styling. Half-day or full-day, with our wine at trade pricing on the day.",
-    img: IMG.bottles,
+    imgKey: "bottles",
     alt: "Bottles lined up on granite — ready for a launch table",
   },
   {
@@ -47,20 +47,25 @@ const SECTIONS: EventTypeSection[] = [
     name: "Retreats & planning days",
     kicker: "Corporate · creative · slow",
     copy: "Morning in the function room, lunch in the garden, a vine walk before the drive home. Whiteboard, projector and decent coffee included; the quiet does the rest.",
-    img: IMG.granite,
+    imgKey: "granite",
     alt: "Granite hillside above the vineyard — the walking track",
   },
 ];
 
 export default function Events() {
   useApplyAppearance();
+  const longTable = useSiteImage("longTable");
+  const barrels = useSiteImage("barrels");
+  const bottles = useSiteImage("bottles");
+  const granite = useSiteImage("granite");
+  const imgByKey: Record<SiteImageKey, string> = { longTable, barrels, bottles, granite } as Record<SiteImageKey, string>;
 
   useSeo({
     title: "Vineyard events & long-table dinners near Bendigo",
     description:
       "Long-table dinners, parties, product launches and corporate retreats at a working vineyard in Harcourt, Victoria. 40 to 180 guests, the property from 10am to midnight, dinners from $120 a head.",
     path: "/events",
-    image: IMG.longTable,
+    image: longTable,
     imageAlt: "A long banquet table under festoon lights in the function shed at Harcourt Valley Vineyards",
     keywords: ["long table dinner Victoria", "vineyard function venue Bendigo", "corporate retreat Central Victoria", "product launch venue"],
     jsonLd: [
@@ -68,7 +73,7 @@ export default function Events() {
         path: "/events",
         name: "Events & long tables",
         description: "Event and function hire at Harcourt Valley Vineyards — long-table dinners, parties, launches and retreats.",
-        primaryImage: IMG.longTable,
+        primaryImage: longTable,
       }),
       breadcrumbSchema([
         { name: "Home", path: "/" },
@@ -108,7 +113,7 @@ export default function Events() {
     <div>
       {/* Opener */}
       <section className="relative h-[56svh] min-h-[420px] border-b-2 border-granite-900 overflow-hidden">
-        <img src={IMG.longTable} alt="Long banquet table under festoon lights in the function shed" className="absolute inset-0 w-full h-full object-cover img-in" />
+        <img src={longTable} alt="Long banquet table under festoon lights in the function shed" className="absolute inset-0 w-full h-full object-cover img-in" />
         <div className="absolute inset-0 bg-gradient-to-t from-granite-900 via-granite-900/30 to-granite-900/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 text-bone">
@@ -148,7 +153,7 @@ export default function Events() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 items-center">
               <Reveal className={idx % 2 === 1 ? "lg:order-2" : ""}>
                 <div className={`${idx % 2 === 1 ? "img-frame-alt" : "img-frame"} border-2 border-granite-900 shadow-hard-sm lux-zoom`}>
-                  <img src={s.img} alt={s.alt} className="w-full h-[260px] sm:h-[360px] object-cover img-in" loading="lazy" />
+                  <img src={imgByKey[s.imgKey]} alt={s.alt} className="w-full h-[260px] sm:h-[360px] object-cover img-in" loading="lazy" />
                 </div>
               </Reveal>
               <Reveal delay={120} className={idx % 2 === 1 ? "lg:order-1" : ""}>

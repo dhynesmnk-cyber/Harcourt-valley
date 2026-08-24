@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { fmtPostDate, parseBody, type BlogPost } from "../lib/data";
+import { useStoredImage } from "../lib/media";
 import { ArrowUpRight } from "./ui";
 
 /* ------------------------------------------------------------------ */
@@ -25,6 +26,7 @@ export function PostMeta({ post, className = "" }: { post: BlogPost; className?:
  */
 export function PostCard({ post, size = "md" }: { post: BlogPost; size?: "md" | "lg" }) {
   const large = size === "lg";
+  const image = useStoredImage(post.image) ?? post.image;
   return (
     <article className="h-full">
       <Link
@@ -33,7 +35,7 @@ export function PostCard({ post, size = "md" }: { post: BlogPost; size?: "md" | 
       >
         <div className={`${large ? "img-frame" : "img-frame-alt"} overflow-hidden`}>
           <img
-            src={post.image}
+            src={image}
             alt={post.imageAlt}
             className={`w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] ${large ? "h-64 sm:h-80" : "h-48"}`}
             loading="lazy"

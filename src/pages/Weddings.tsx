@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { IMG, type EventSubtype } from "../lib/data";
-import { useApplyAppearance, useStore } from "../lib/store";
+import { type EventSubtype } from "../lib/data";
+import { useApplyAppearance, useSiteImage, useStore } from "../lib/store";
 import { EnquiryForm } from "../components/EnquiryForm";
 import { AnchorLink, ArrowRight, ClockIcon, ContourDivider, FaqList, MailIcon, PhoneIcon, PinIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
@@ -18,13 +18,16 @@ const ANCHORS = [
 
 export default function Weddings() {
   useApplyAppearance();
+  const wedding = useSiteImage("wedding");
+  const granite = useSiteImage("granite");
+  const longTable = useSiteImage("longTable");
 
   useSeo({
     title: "Vineyard weddings in Victoria — get married in the vines at Harcourt",
     description:
       "A vineyard wedding venue 30 minutes from Bendigo and 90 from Melbourne. One wedding a day, 120 seated or 180 standing, the property yours 10am to midnight, and published ballpark costs from $6,500.",
     path: "/weddings",
-    image: IMG.wedding,
+    image: wedding,
     imageAlt: "Wedding ceremony aisle set between vine rows at Harcourt Valley Vineyards",
     keywords: ["vineyard wedding Victoria", "Bendigo wedding venue", "winery wedding Central Victoria", "Harcourt wedding venue"],
     jsonLd: [
@@ -32,7 +35,7 @@ export default function Weddings() {
         path: "/weddings",
         name: "Weddings in the vines",
         description: "Wedding venue hire at Harcourt Valley Vineyards — one wedding a day, 120 seated or 180 standing.",
-        primaryImage: IMG.wedding,
+        primaryImage: wedding,
       }),
       breadcrumbSchema([
         { name: "Home", path: "/" },
@@ -72,7 +75,7 @@ export default function Weddings() {
     <div>
       {/* Opener */}
       <section className="relative h-[64svh] min-h-[440px] border-b-2 border-granite-900 overflow-hidden">
-        <img src={IMG.wedding} alt="Ceremony aisle between vine rows with the granite hills behind" className="absolute inset-0 w-full h-full object-cover img-in" />
+        <img src={wedding} alt="Ceremony aisle between vine rows with the granite hills behind" className="absolute inset-0 w-full h-full object-cover img-in" />
         <div className="absolute inset-0 bg-gradient-to-t from-granite-900 via-granite-900/30 to-granite-900/10" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 text-bone">
@@ -118,10 +121,10 @@ export default function Weddings() {
         </Reveal>
         <Reveal delay={120}>
           <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
-            <img src={IMG.granite} alt="Granite boulders and gums behind the vineyard — the photo backdrop" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
+            <img src={granite} alt="Granite boulders and gums behind the vineyard — the photo backdrop" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
           </div>
           <div className="mt-6 img-frame-alt border-2 border-granite-900 lux-zoom">
-            <img src={IMG.longTable} alt="The function shed dressed for a wedding dinner" className="w-full h-[220px] sm:h-[280px] object-cover img-in" loading="lazy" />
+            <img src={longTable} alt="The function shed dressed for a wedding dinner" className="w-full h-[220px] sm:h-[280px] object-cover img-in" loading="lazy" />
           </div>
         </Reveal>
       </section>

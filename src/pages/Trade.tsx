@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { IMG, uid } from "../lib/data";
+import { uid } from "../lib/data";
 import { validEmail } from "../components/ui";
 import { useStore } from "../lib/store";
 import { FieldArea, FieldSelect, FieldText, MinusIcon, PlusIcon, Reveal, SectionHead, Tick } from "../components/ui";
-import { useApplyAppearance } from "../lib/store";
+import { useApplyAppearance, useSiteImage } from "../lib/store";
 import { breadcrumbSchema, useSeo, webPageSchema } from "../lib/seo";
 
 interface Line {
@@ -15,13 +15,14 @@ interface Line {
 
 export default function Trade() {
   useApplyAppearance();
+  const bottles = useSiteImage("bottles");
 
   useSeo({
     title: "Trade & stockists — wholesale wine from Central Victoria",
     description:
       "Wholesale ordering for bottle shops, wine bars and restaurants. Harcourt Valley Vineyards supplies award-winning Central Victorian wine across regional Victoria and the Murray.",
     path: "/winery/trade",
-    image: IMG.bottles,
+    image: bottles,
     imageAlt: "The full Harcourt Valley range — wine, beer and mead — on a granite table",
     keywords: ["wholesale wine Victoria", "wine stockist Bendigo", "trade wine orders Central Victoria"],
     jsonLd: [
@@ -29,7 +30,7 @@ export default function Trade() {
         path: "/winery/trade",
         name: "Trade & stockists",
         description: "Wholesale ordering for licensed venues and retailers.",
-        primaryImage: IMG.bottles,
+        primaryImage: bottles,
       }),
       breadcrumbSchema([
         { name: "Home", path: "/" },
@@ -139,7 +140,7 @@ export default function Trade() {
           </Reveal>
           <Reveal delay={100}>
             <div className="img-frame border-2 border-granite-900 shadow-hard-sm lux-zoom">
-              <img src={IMG.bottles} alt="The full range — wine, beer and mead — on a granite table" className="w-full h-56 object-cover img-in" loading="lazy" />
+              <img src={bottles} alt="The full range — wine, beer and mead — on a granite table" className="w-full h-56 object-cover img-in" loading="lazy" />
             </div>
           </Reveal>
           <Reveal delay={160}>

@@ -1,14 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   BeeSearchProfile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
-  ProductImage, Sequence, SequenceStep, SiteConfig, TradeOrder,
-  IMG, referencedImageIds,
+  ProductImage, Sequence, SequenceStep, SiteConfig, SiteImageKey, TradeOrder,
+  IMG, FONT_CATALOG, PALETTE_CATALOG, referencedImageIds,
   DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
   seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
 import { isRemote, supabase } from "./supabase";
 import { hydrate, syncState } from "./remote";
-import { MAX_IMAGES_PER_PRODUCT, clearImages, deleteImages, prepareImage, pruneOrphans, putImage } from "./media";
+import { MAX_IMAGES_PER_PRODUCT, clearImages, prepareImage, pruneOrphans, removeStoredImage, storeImage, useStoredImage } from "./media";
 
 interface StoreState {
   products: Product[];
@@ -97,6 +97,15 @@ interface StoreValue extends StoreState {
   setPrimaryImage: (productId: string, imageId: string) => void;
   moveProductImage: (productId: string, imageId: string, direction: -1 | 1) => void;
   updateImageAlt: (productId: string, imageId: string, alt: string) => void;
+  /** One-off upload for a spot that isn't a fixed slot — e.g. a journal post's photo. Returns an id useStoredImage can resolve. */
+  uploadImage: (scope: string, file: File) => Promise<{ ok: true; id: string } | { ok: false; error: string }>;
+  /** Replaces one of the site's built-in stock photos (see IMG/SiteImageKey) with an uploaded one, everywhere it's used. */
+  setSiteImage: (key: SiteImageKey, file: File) => Promise<{ ok: boolean; error?: string }>;
+  /** Drops back to the built-in stock photo for that slot. */
+  resetSiteImage: (key: SiteImageKey) => void;
+  /** Replaces just the homepage hero photo, independent of the heroHeadline preset picker. */
+  setCustomHeroImage: (file: File) => Promise<{ ok: boolean; error?: string }>;
+  clearCustomHeroImage: () => void;
   updateSequence: (id: string, steps: SequenceStep[]) => void;
   toggleSequence: (id: string) => void;
   updateConfig: (patch: Partial<SiteConfig>) => void;
@@ -400,8 +409,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       for (const file of files.slice(0, room)) {
         try {
           const prepared = await prepareImage(file);
-          const id = uid();
-          await putImage(id, prepared.blob);
+          const id = await storeImage(`products/${productId}`, prepared.blob);
           accepted.push({
             id,
             alt: "",
@@ -432,7 +440,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...s,
       products: s.products.map((p) => (p.id === productId ? { ...p, images: (p.images ?? []).filter((i) => i.id !== imageId) } : p)),
     }));
-    void deleteImages([imageId]);
+    void removeStoredImage(imageId);
   }, []);
 
   const setPrimaryImage = useCallback((productId: string, imageId: string) => {
@@ -469,6 +477,63 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         p.id === productId ? { ...p, images: (p.images ?? []).map((i) => (i.id === imageId ? { ...i, alt } : i)) } : p,
       ),
     }));
+  }, []);
+
+  /* ---------- site-wide photos ---------- */
+
+  /** One-off upload for a spot that isn't a fixed slot — e.g. a journal post's photo. Doesn't touch any state itself. */
+  const uploadImage = useCallback(async (scope: string, file: File): Promise<{ ok: true; id: string } | { ok: false; error: string }> => {
+    try {
+      const prepared = await prepareImage(file);
+      const id = await storeImage(scope, prepared.blob);
+      return { ok: true, id };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "That photo couldn't be uploaded." };
+    }
+  }, []);
+
+  const setSiteImage = useCallback(async (key: SiteImageKey, file: File): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const prepared = await prepareImage(file);
+      const id = await storeImage(`site/${key}`, prepared.blob);
+      const prevId = stateRef.current.config.siteImages?.[key];
+      setState((s) => ({ ...s, config: { ...s.config, siteImages: { ...s.config.siteImages, [key]: id } } }));
+      if (prevId) void removeStoredImage(prevId);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "That photo couldn't be uploaded." };
+    }
+  }, []);
+
+  const resetSiteImage = useCallback((key: SiteImageKey) => {
+    const prevId = stateRef.current.config.siteImages?.[key];
+    if (!prevId) return;
+    setState((s) => {
+      const next = { ...s.config.siteImages };
+      delete next[key];
+      return { ...s, config: { ...s.config, siteImages: next } };
+    });
+    void removeStoredImage(prevId);
+  }, []);
+
+  const setCustomHeroImage = useCallback(async (file: File): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const prepared = await prepareImage(file);
+      const id = await storeImage("site/hero", prepared.blob);
+      const prevId = stateRef.current.config.customHeroImage;
+      setState((s) => ({ ...s, config: { ...s.config, customHeroImage: id } }));
+      if (prevId) void removeStoredImage(prevId);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "That photo couldn't be uploaded." };
+    }
+  }, []);
+
+  const clearCustomHeroImage = useCallback(() => {
+    const prevId = stateRef.current.config.customHeroImage;
+    if (!prevId) return;
+    setState((s) => ({ ...s, config: { ...s.config, customHeroImage: null } }));
+    void removeStoredImage(prevId);
   }, []);
 
   /* ---------- sequences / email ---------- */
@@ -662,6 +727,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setPrimaryImage,
     moveProductImage,
     updateImageAlt,
+    uploadImage,
+    setSiteImage,
+    resetSiteImage,
+    setCustomHeroImage,
+    clearCustomHeroImage,
     updateSequence,
     toggleSequence,
     updateConfig,
@@ -684,6 +754,14 @@ export function useStore(): StoreValue {
   const v = useContext(Ctx);
   if (!v) throw new Error("useStore must be used inside StoreProvider");
   return v;
+}
+
+/** Resolves one of the site's stock photos (see IMG), swapping in whatever the admin uploaded to replace it. */
+export function useSiteImage(key: SiteImageKey): string {
+  const { config } = useStore();
+  const overrideId = config.siteImages?.[key] ?? null;
+  const resolved = useStoredImage(overrideId);
+  return overrideId ? resolved ?? IMG[key] : IMG[key];
 }
 
 /* Variant A/B toggle for the home page (client preview only). */
@@ -715,20 +793,12 @@ export function useApplyAppearance() {
   const { config } = useStore();
   useEffect(() => {
     const root = document.documentElement;
-    const palettes: Record<SiteConfig["palette"], { g: string; v: string; o: string }> = {
-      granite: { g: "#67252f", v: "#4c5b3f", o: "#b77a2e" },
-      orchard: { g: "#5b2440", v: "#3e5a44", o: "#9a6b23" },
-    };
-    const fonts: Record<SiteConfig["displayFont"], string> = {
-      fraunces: '"Fraunces"',
-      cormorant: '"Cormorant Garamond"',
-      marcellus: '"Marcellus"',
-    };
-    const p = palettes[config.palette] ?? palettes.granite;
-    root.style.setProperty("--acc-garnet", p.g);
-    root.style.setProperty("--acc-vine", p.v);
-    root.style.setProperty("--acc-ochre", p.o);
-    root.style.setProperty("--display-font", fonts[config.displayFont] ?? fonts.fraunces);
+    const palette = PALETTE_CATALOG.find((p) => p.id === config.palette) ?? PALETTE_CATALOG[0];
+    const font = FONT_CATALOG.find((f) => f.id === config.displayFont) ?? FONT_CATALOG[0];
+    root.style.setProperty("--acc-garnet", palette.garnet);
+    root.style.setProperty("--acc-vine", palette.vine);
+    root.style.setProperty("--acc-ochre", palette.ochre);
+    root.style.setProperty("--display-font", font.family);
   }, [config.palette, config.displayFont]);
 }
 

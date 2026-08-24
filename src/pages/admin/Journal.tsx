@@ -1,26 +1,24 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { IMG, fmtPostDate, readingMinutes, slugify, type BlogPost } from "../../lib/data";
-import { useStore } from "../../lib/store";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SITE_IMAGE_KEYS, fmtPostDate, readingMinutes, slugify, type BlogPost, type SiteImageKey } from "../../lib/data";
+import { useSiteImage, useStore } from "../../lib/store";
+import { useStoredImage } from "../../lib/media";
 import { SITE_URL } from "../../lib/site";
-import { ArrowRight, EmptyState, PlusIcon, Tick } from "../../components/ui";
+import { ArrowRight, EmptyState, PlusIcon, Tick, UploadIcon } from "../../components/ui";
+import { SiteImageOption } from "../../components/admin/SitePhotos";
 
 /* ------------------------------------------------------------------ */
 /*  Write and edit journal posts. One image per post, chosen from the  */
-/*  photo library or pasted in — and alt text is a first-class field,  */
-/*  not an afterthought, because it is doing real work for search.     */
+/*  photo library, uploaded, or pasted in — and alt text is a          */
+/*  first-class field, not an afterthought, because it is doing real   */
+/*  work for search.                                                    */
 /* ------------------------------------------------------------------ */
 
-const IMAGE_LIBRARY: { src: string; label: string }[] = [
-  { src: IMG.vines, label: "Vine rows at dusk" },
-  { src: IMG.cellarDoor, label: "The cellar door pour" },
-  { src: IMG.wedding, label: "Ceremony in the vines" },
-  { src: IMG.longTable, label: "The long table" },
-  { src: IMG.barrels, label: "Barrels in the cellar" },
-  { src: IMG.granite, label: "Granite & gums" },
-  { src: IMG.bottles, label: "The full range" },
-];
-
 const CATEGORIES = ["Wine", "Weddings", "Events", "Visiting", "The vineyard"];
+
+function PostThumb({ post }: { post: BlogPost }) {
+  const src = useStoredImage(post.image) ?? post.image;
+  return <img src={src} alt="" className="w-12 h-12 object-cover border border-granite-900 shrink-0" loading="lazy" />;
+}
 
 /** Plain-English checks that decide whether a post can do any work in search. */
 function seoChecks(p: BlogPost) {
@@ -58,10 +56,14 @@ function Toggle({ id, checked, onChange, label, note }: { id: string; checked: b
 }
 
 function Editor({ post, onDone }: { post: BlogPost; onDone: () => void }) {
-  const { updatePost, deletePost, toast } = useStore();
+  const { updatePost, deletePost, uploadImage, toast } = useStore();
   const [draft, setDraft] = useState<BlogPost>(post);
   const [tagText, setTagText] = useState(post.tags.join(", "));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const draftImageUrl = useStoredImage(draft.image) ?? draft.image;
 
   /* Switching posts in the list swaps the whole draft, unsaved changes and all. */
   useEffect(() => {
@@ -160,26 +162,45 @@ function Editor({ post, onDone }: { post: BlogPost; onDone: () => void }) {
       <fieldset className="border-2 border-granite-900 bg-bone">
         <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">The photo — one per post</legend>
         <div className="p-5 space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {IMAGE_LIBRARY.map((im) => (
+          <div className="flex flex-wrap items-center gap-4">
+            <img src={draftImageUrl} alt="" className="w-28 h-20 object-cover border-2 border-granite-900 shrink-0" />
+            <div>
+              <p className="text-xs font-label font-semibold">Currently set for this post.</p>
               <button
-                key={im.src}
                 type="button"
-                onClick={() => set({ image: im.src })}
-                aria-pressed={draft.image === im.src}
-                className={`border-2 overflow-hidden text-left transition-all ${draft.image === im.src ? "border-granite-900 shadow-hard-sm" : "border-granite-300 hover:border-granite-900"}`}
+                className="mt-1.5 btn btn-sm btn-ghost border border-granite-500"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={imageBusy}
               >
-                <span className="block relative">
-                  <img src={im.src} alt={im.label} className="w-full h-24 object-cover" loading="lazy" />
-                  {draft.image === im.src ? (
-                    <span className="absolute top-2 right-2 grid place-items-center w-6 h-6 bg-vine text-bone border border-granite-900">
-                      <Tick className="w-3.5 h-3.5" />
-                    </span>
-                  ) : null}
-                </span>
-                <span className="block font-label font-semibold text-[0.7rem] px-2.5 py-1.5">{im.label}</span>
+                <UploadIcon className="w-3.5 h-3.5" /> {imageBusy ? "Uploading…" : "Upload a photo"}
               </button>
-            ))}
+              {imageError ? <p className="mt-1.5 text-xs text-garnet">{imageError}</p> : null}
+            </div>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setImageBusy(true);
+                setImageError("");
+                const r = await uploadImage(`posts/${post.id}`, file);
+                setImageBusy(false);
+                if (r.ok) set({ image: r.id });
+                else setImageError(r.error);
+              }}
+            />
+          </div>
+          <div>
+            <p className="field-label">Or pick from the photo library</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {SITE_IMAGE_KEYS.map((key) => (
+                <SiteImageOption key={key} imgKey={key} currentValue={draft.image} onSelect={(src) => set({ image: src })} />
+              ))}
+            </div>
           </div>
           <div>
             <label className="field-label" htmlFor="jp-image">
@@ -383,7 +404,7 @@ export function JournalView() {
                   aria-current={selectedId === p.id ? "true" : undefined}
                   className={`w-full text-left px-4 py-3 flex gap-3 items-start transition-colors ${selectedId === p.id ? "bg-granite-900 text-bone" : "hover:bg-granite-100"}`}
                 >
-                  <img src={p.image} alt="" className="w-12 h-12 object-cover border border-granite-900 shrink-0" loading="lazy" />
+                  <PostThumb post={p} />
                   <span className="min-w-0">
                     <span className="block font-label font-semibold text-sm leading-snug line-clamp-2">{p.title || "Untitled post"}</span>
                     <span className={`block text-[0.7rem] mt-1 ${selectedId === p.id ? "text-granite-300" : "text-granite-500"}`}>

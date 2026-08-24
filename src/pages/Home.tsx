@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { IMG, publishedPosts } from "../lib/data";
-import { useApplyAppearance, useStore, useVariant } from "../lib/store";
+import { publishedPosts, type SiteImageKey } from "../lib/data";
+import { useApplyAppearance, useSiteImage, useStore, useVariant } from "../lib/store";
+import { useStoredImage } from "../lib/media";
 import { VariantToggle } from "../components/chrome";
 import { TypedLines } from "../components/TypedLines";
 import { PostCard } from "../components/journal";
@@ -15,10 +16,10 @@ import {
 
 /* ================= Variant A — fullscreen interactive triptych ================= */
 
-const PANELS = [
+const PANELS: { to: string; imgKey: SiteImageKey; alt: string; title: string; desc: string; blurb: string }[] = [
   {
     to: "/winery",
-    img: IMG.cellarDoor,
+    imgKey: "cellarDoor",
     alt: "Red wine being poured at the timber cellar door bar",
     title: "The Winery",
     desc: "CELLAR DOOR · WINES · TRADE",
@@ -26,7 +27,7 @@ const PANELS = [
   },
   {
     to: "/weddings",
-    img: IMG.wedding,
+    imgKey: "wedding",
     alt: "Wedding ceremony aisle set between rows of vines",
     title: "Weddings",
     desc: "MARRIED IN THE VINES",
@@ -34,7 +35,7 @@ const PANELS = [
   },
   {
     to: "/events",
-    img: IMG.longTable,
+    imgKey: "longTable",
     alt: "Long banquet table under festoon lights in the function shed",
     title: "Events",
     desc: "PARTIES · DINNERS · LAUNCHES",
@@ -44,6 +45,10 @@ const PANELS = [
 
 function Triptych() {
   const [active, setActive] = useState<number | null>(null);
+  const cellarDoor = useSiteImage("cellarDoor");
+  const wedding = useSiteImage("wedding");
+  const longTable = useSiteImage("longTable");
+  const imgByKey: Record<SiteImageKey, string> = { cellarDoor, wedding, longTable } as Record<SiteImageKey, string>;
   return (
     <div className="flex flex-col md:flex-row h-[calc(100svh-72px)] border-b-2 border-granite-900" onMouseLeave={() => setActive(null)}>
       {PANELS.map((p, i) => {
@@ -59,7 +64,7 @@ function Triptych() {
             aria-label={`${p.title} — ${p.desc.toLowerCase()}`}
           >
             <img
-              src={p.img}
+              src={imgByKey[p.imgKey]}
               alt={p.alt}
               className="absolute inset-0 w-full h-full object-cover img-in"
               style={{ transform: isActive ? "scale(1.03)" : "scale(1.08)", transition: "transform 1.4s var(--ease-soft), opacity .5s ease" }}
@@ -90,6 +95,11 @@ function Triptych() {
 
 function Classic() {
   const { config } = useStore();
+  const heroUrl = useStoredImage(config.customHeroImage) ?? config.heroImage;
+  const cellarDoor = useSiteImage("cellarDoor");
+  const wedding = useSiteImage("wedding");
+  const longTable = useSiteImage("longTable");
+  const granite = useSiteImage("granite");
   return (
     <>
       {/* Opening: split editorial hero, not a centred trio */}
@@ -127,7 +137,7 @@ function Classic() {
         </div>
         <Reveal delay={120} className="lg:col-span-6">
           <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
-            <img src={config.heroImage} alt="Vine rows running toward the granite hills at golden hour" className="w-full h-[320px] sm:h-[440px] object-cover img-in" />
+            <img src={heroUrl} alt="Vine rows running toward the granite hills at golden hour" className="w-full h-[320px] sm:h-[440px] object-cover img-in" />
           </div>
         </Reveal>
       </section>
@@ -148,7 +158,7 @@ function Classic() {
           <Reveal className="lg:col-span-7">
             <Link to="/winery" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
               <div className="img-frame-alt overflow-hidden lux-zoom">
-                <img src={IMG.cellarDoor} alt="A pour of Shiraz at the cellar door" className="w-full h-64 sm:h-80 object-cover" loading="lazy" />
+                <img src={cellarDoor} alt="A pour of Shiraz at the cellar door" className="w-full h-64 sm:h-80 object-cover" loading="lazy" />
               </div>
               <div className="p-6 sm:p-8">
                 <p className="kicker text-granite-500">The winery</p>
@@ -165,7 +175,7 @@ function Classic() {
               <Link to="/weddings" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
                 <div className="flex flex-col sm:flex-row">
                   <div className="img-frame sm:w-44 shrink-0 overflow-hidden lux-zoom">
-                    <img src={IMG.wedding} alt="Ceremony chairs between vine rows" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
+                    <img src={wedding} alt="Ceremony chairs between vine rows" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-5 sm:p-6">
                     <p className="kicker text-granite-500">Weddings</p>
@@ -182,7 +192,7 @@ function Classic() {
               <Link to="/events" className="group block border-2 border-granite-900 bg-bone lux-card lux-sheen">
                 <div className="flex flex-col sm:flex-row">
                   <div className="img-frame-alt sm:w-44 shrink-0 overflow-hidden lux-zoom">
-                    <img src={IMG.longTable} alt="Long table dressed for dinner under festoon lights" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
+                    <img src={longTable} alt="Long table dressed for dinner under festoon lights" className="w-full h-40 sm:h-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-5 sm:p-6">
                     <p className="kicker text-granite-500">Events</p>
@@ -205,7 +215,7 @@ function Classic() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20 grid lg:grid-cols-2 gap-12 items-start">
         <Reveal>
           <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
-            <img src={IMG.granite} alt="Granite boulders and river red gums on the Harcourt hillside" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
+            <img src={granite} alt="Granite boulders and river red gums on the Harcourt hillside" className="w-full h-[300px] sm:h-[420px] object-cover img-in" loading="lazy" />
           </div>
         </Reveal>
         <Reveal delay={120}>
@@ -331,13 +341,16 @@ export default function Home() {
   const [variant, setVariant] = useVariant();
   useApplyAppearance();
   const { config } = useStore();
+  // SEO metadata needs a crawlable, absolute URL — a custom hero only qualifies once it's
+  // actually a URL (i.e. uploaded with a backend connected), not a browser-local IndexedDB id.
+  const heroSeoImage = config.customHeroImage && /^https?:\/\//.test(config.customHeroImage) ? config.customHeroImage : config.heroImage;
 
   useSeo({
     title: "Harcourt Valley Vineyards — wine, weddings & events in Harcourt, Victoria",
     description:
       "Bendigo's most-awarded winery: 500+ show medals and a 5-star Halliday rating. Cellar door Friday to Sunday, weddings in the vines, and long-table events — 30 minutes from Bendigo, 90 from Melbourne.",
     path: "/",
-    image: config.heroImage,
+    image: heroSeoImage,
     imageAlt: "Vine rows running toward the granite hills at Harcourt Valley Vineyards",
     keywords: [
       "Harcourt Valley Vineyards",
@@ -352,7 +365,7 @@ export default function Home() {
         name: "Wine, weddings & events in Harcourt, Victoria",
         description:
           "Harcourt Valley Vineyards is a family-run winery in the Bendigo wine region with a cellar door, a wedding venue among the vines, and a long-table event space.",
-        primaryImage: config.heroImage,
+        primaryImage: heroSeoImage,
       }),
       breadcrumbSchema([{ name: "Home", path: "/" }]),
       faqSchema(HOME_FAQS),

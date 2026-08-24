@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { IMG, TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
+import React, { useMemo, useRef, useState } from "react";
+import { FONT_CATALOG, PALETTE_CATALOG, SEASONS, TYPED_PAGES, typedPageLabel, uid, type Ballpark, type TypedLine, type TypedPage } from "../../lib/data";
 import { useStore } from "../../lib/store";
-import { PlusIcon, Tick, TrashIcon } from "../../components/ui";
+import { useStoredImage } from "../../lib/media";
+import { PlusIcon, TrashIcon, UploadIcon } from "../../components/ui";
 import { TypedPreview } from "../../components/TypedLines";
+import { SiteImageOption, SitePhotosPanel } from "../../components/admin/SitePhotos";
 
 function BallparkEditor({ label, rows, onSave }: { label: string; rows: Ballpark[]; onSave: (rows: Ballpark[]) => void }) {
   const [draft, setDraft] = useState<Ballpark[]>(rows);
@@ -331,99 +333,140 @@ function TypedTab() {
 }
 
 function AppearanceTab() {
-  const { config, updateConfig, toast } = useStore();
+  const { config, updateConfig, setCustomHeroImage, clearCustomHeroImage, toast } = useStore();
   const [palette, setPalette] = useState(config.palette);
   const [font, setFont] = useState(config.displayFont);
   const [heroImage, setHeroImage] = useState(config.heroImage);
   const dirty = palette !== config.palette || font !== config.displayFont || heroImage !== config.heroImage;
 
-  const heroOptions = [
-    { src: IMG.vines, label: "Vine rows at dusk" },
-    { src: IMG.cellarDoor, label: "The cellar door pour" },
-    { src: IMG.wedding, label: "Ceremony in the vines" },
-  ];
+  const heroOptions = ["vines", "cellarDoor", "wedding"] as const;
+  const customHeroUrl = useStoredImage(config.customHeroImage);
+  const heroInputRef = useRef<HTMLInputElement>(null);
+  const [heroBusy, setHeroBusy] = useState(false);
+  const [heroError, setHeroError] = useState("");
 
-  const fonts = [
-    { id: "fraunces" as const, name: "Fraunces", family: '"Fraunces", serif', note: "The current voice — warm, a little weathered." },
-    { id: "cormorant" as const, name: "Cormorant Garamond", family: '"Cormorant Garamond", serif', note: "Lighter and more formal." },
-    { id: "marcellus" as const, name: "Marcellus", family: '"Marcellus", serif', note: "Roman, quiet, carved-in-stone." },
-  ];
-
-  const palettes = [
-    { id: "granite" as const, name: "Granite (current)", swatches: ["#67252f", "#4c5b3f", "#b77a2e"] },
-    { id: "orchard" as const, name: "Orchard", swatches: ["#5b2440", "#3e5a44", "#9a6b23"] },
-  ];
+  const uploadHero = async (file: File) => {
+    setHeroBusy(true);
+    setHeroError("");
+    const r = await setCustomHeroImage(file);
+    setHeroBusy(false);
+    if (r.ok) toast("Your photo is now the homepage hero.");
+    else setHeroError(r.error ?? "That photo couldn't be uploaded.");
+  };
 
   return (
     <div className="space-y-8 max-w-3xl">
       <fieldset className="border-2 border-granite-900 bg-bone">
         <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">Colour mood</legend>
-        <div className="p-5 grid sm:grid-cols-2 gap-4">
-          {palettes.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPalette(p.id)}
-              aria-pressed={palette === p.id}
-              className={`border-2 p-4 text-left transition-all ${palette === p.id ? "border-granite-900 shadow-hard-sm bg-granite-100/50" : "border-granite-300 hover:border-granite-900"}`}
-            >
-              <span className="flex gap-2">
-                {p.swatches.map((s) => (
-                  <span key={s} className="w-8 h-8 border-2 border-granite-900" style={{ background: s }} />
+        <div className="p-5 space-y-6">
+          <p className="text-xs text-granite-500">Curated by season — pick any of the eight, whatever the time of year actually is.</p>
+          {SEASONS.map((season) => (
+            <div key={season.id}>
+              <p className="kicker text-granite-500 flex items-baseline gap-2">
+                {season.name} <span className="text-granite-400 normal-case tracking-normal font-normal">— {season.blurb}</span>
+              </p>
+              <div className="mt-2.5 grid sm:grid-cols-2 gap-4">
+                {PALETTE_CATALOG.filter((p) => p.season === season.id).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPalette(p.id)}
+                    aria-pressed={palette === p.id}
+                    className={`border-2 p-4 text-left transition-all ${palette === p.id ? "border-granite-900 shadow-hard-sm bg-granite-100/50" : "border-granite-300 hover:border-granite-900"}`}
+                  >
+                    <span className="flex gap-2">
+                      {[p.garnet, p.vine, p.ochre].map((s) => (
+                        <span key={s} className="w-8 h-8 border-2 border-granite-900" style={{ background: s }} />
+                      ))}
+                    </span>
+                    <span className="block font-label font-semibold text-sm mt-3">
+                      {p.name} {palette === p.id ? <span className="text-vine">· current</span> : null}
+                    </span>
+                  </button>
                 ))}
-              </span>
-              <span className="block font-label font-semibold text-sm mt-3">{p.name}</span>
-              <span className="block text-xs text-granite-500 mt-1">Wine, vine and harvest accents — both tuned for readability.</span>
-            </button>
+              </div>
+            </div>
           ))}
         </div>
       </fieldset>
 
       <fieldset className="border-2 border-granite-900 bg-bone">
         <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">Headline lettering</legend>
-        <div className="p-5 grid sm:grid-cols-3 gap-4">
-          {fonts.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFont(f.id)}
-              aria-pressed={font === f.id}
-              className={`border-2 p-4 text-left transition-all ${font === f.id ? "border-granite-900 shadow-hard-sm bg-granite-100/50" : "border-granite-300 hover:border-granite-900"}`}
-            >
-              <span className="block text-4xl leading-none" style={{ fontFamily: f.family }}>
-                Aa
-              </span>
-              <span className="block font-label font-semibold text-sm mt-3">{f.name}</span>
-              <span className="block text-xs text-granite-500 mt-1">{f.note}</span>
-            </button>
+        <div className="p-5 space-y-6">
+          <p className="text-xs text-granite-500">Also curated by season — the mood of the letterforms, independent of colour.</p>
+          {SEASONS.map((season) => (
+            <div key={season.id}>
+              <p className="kicker text-granite-500">{season.name}</p>
+              <div className="mt-2.5 grid sm:grid-cols-2 gap-4">
+                {FONT_CATALOG.filter((f) => f.season === season.id).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFont(f.id)}
+                    aria-pressed={font === f.id}
+                    className={`border-2 p-4 text-left transition-all ${font === f.id ? "border-granite-900 shadow-hard-sm bg-granite-100/50" : "border-granite-300 hover:border-granite-900"}`}
+                  >
+                    <span className="block text-4xl leading-none" style={{ fontFamily: `${f.family}, serif` }}>
+                      Aa
+                    </span>
+                    <span className="block font-label font-semibold text-sm mt-3">{f.name}</span>
+                    <span className="block text-xs text-granite-500 mt-1">{f.note}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </fieldset>
 
       <fieldset className="border-2 border-granite-900 bg-bone">
         <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">Home page photograph</legend>
-        <div className="p-5 grid sm:grid-cols-3 gap-4">
-          {heroOptions.map((h) => (
-            <button
-              key={h.src}
-              type="button"
-              onClick={() => setHeroImage(h.src)}
-              aria-pressed={heroImage === h.src}
-              className={`border-2 overflow-hidden text-left transition-all ${heroImage === h.src ? "border-granite-900 shadow-hard-sm" : "border-granite-300 hover:border-granite-900"}`}
-            >
-              <span className="block relative">
-                <img src={h.src} alt={h.label} className="w-full h-28 object-cover" loading="lazy" />
-                {heroImage === h.src ? (
-                  <span className="absolute top-2 right-2 grid place-items-center w-6 h-6 bg-vine text-bone border border-granite-900">
-                    <Tick className="w-3.5 h-3.5" />
-                  </span>
-                ) : null}
-              </span>
-              <span className="block font-label font-semibold text-xs px-3 py-2">{h.label}</span>
-            </button>
-          ))}
+        <div className="p-5">
+          <div className="grid sm:grid-cols-3 gap-4">
+            {heroOptions.map((key) => (
+              <SiteImageOption key={key} imgKey={key} currentValue={customHeroUrl ? "" : heroImage} onSelect={(src) => setHeroImage(src)} />
+            ))}
+          </div>
+          <div className="mt-5 pt-5 border-t border-granite-300 flex flex-wrap items-center gap-4">
+            {customHeroUrl ? (
+              <div className="flex items-center gap-3">
+                <img src={customHeroUrl} alt="Your uploaded hero photo" className="w-20 h-14 object-cover border-2 border-granite-900" />
+                <div>
+                  <p className="text-xs font-label font-semibold">Your own photo is set as the hero.</p>
+                  <button
+                    type="button"
+                    className="text-xs text-garnet hover:underline underline-offset-4"
+                    onClick={() => {
+                      clearCustomHeroImage();
+                      toast("Back to the preset photo above.");
+                    }}
+                  >
+                    Remove it
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="btn btn-sm btn-ghost border border-granite-500" onClick={() => heroInputRef.current?.click()} disabled={heroBusy}>
+                <UploadIcon className="w-3.5 h-3.5" /> {heroBusy ? "Uploading…" : "Or upload your own photo"}
+              </button>
+            )}
+            <input
+              ref={heroInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadHero(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {heroError ? <p className="mt-2 text-xs text-garnet">{heroError}</p> : null}
         </div>
       </fieldset>
+
+      <SitePhotosPanel />
 
       <div className="flex items-center gap-4">
         <button

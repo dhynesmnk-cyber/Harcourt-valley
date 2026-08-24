@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { IMG, money, type Product, type ProductType } from "../lib/data";
-import { useApplyAppearance, useStore } from "../lib/store";
+import { money, type Product, type ProductType } from "../lib/data";
+import { useApplyAppearance, useSiteImage, useStore } from "../lib/store";
 import { ArrowRight, BottleArt, CloseIcon, ContourDivider, FaqList, MedalRow, MinusIcon, Reveal, SectionHead, Tick } from "../components/ui";
 import { TypedLines } from "../components/TypedLines";
 import { ProductCardImage, ProductGallery } from "../components/product";
@@ -95,6 +95,8 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
 export default function Winery() {
   useApplyAppearance();
   const { products, addToCart, toast } = useStore();
+  const barrels = useSiteImage("barrels");
+  const bottles = useSiteImage("bottles");
   const [filter, setFilter] = useState<"all" | ProductType>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -106,7 +108,7 @@ export default function Winery() {
     description:
       "Shiraz, Cabernet, Chardonnay, Riesling and Rosé grown on decomposed granite at Harcourt, Victoria. 500+ show medals, a 5-star Halliday rating, cellar door Friday to Sunday, and free freight on six bottles.",
     path: "/winery",
-    image: IMG.barrels,
+    image: barrels,
     imageAlt: "Oak barrels resting in the granite cellar at Harcourt Valley Vineyards",
     keywords: ["Bendigo wine region", "Central Victorian Shiraz", "buy Australian wine online", "cellar door Harcourt"],
     jsonLd: [
@@ -114,7 +116,7 @@ export default function Winery() {
         path: "/winery",
         name: "The winery & wine shop",
         description: "The Harcourt Valley range, tasting notes and online ordering, plus cellar door details.",
-        primaryImage: IMG.barrels,
+        primaryImage: barrels,
       }),
       breadcrumbSchema([
         { name: "Home", path: "/" },
@@ -162,7 +164,7 @@ export default function Winery() {
         <div className="mt-10 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
             <div className="img-frame border-2 border-granite-900 shadow-hard lux-zoom">
-              <img src={IMG.barrels} alt="Oak barrels resting in the granite cellar" className="w-full h-[280px] sm:h-[380px] object-cover img-in" />
+              <img src={barrels} alt="Oak barrels resting in the granite cellar" className="w-full h-[280px] sm:h-[380px] object-cover img-in" />
             </div>
           </Reveal>
           <Reveal delay={120}>
@@ -283,7 +285,7 @@ export default function Winery() {
           </Reveal>
           <Reveal delay={120}>
             <div className="img-frame-alt border-2 border-bone/40 lux-zoom">
-              <img src={IMG.bottles} alt="Wine, beer and mead bottles on a granite table" className="w-full h-[280px] sm:h-[380px] object-cover img-in" loading="lazy" />
+              <img src={bottles} alt="Wine, beer and mead bottles on a granite table" className="w-full h-[280px] sm:h-[380px] object-cover img-in" loading="lazy" />
             </div>
           </Reveal>
         </div>
