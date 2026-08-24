@@ -29,6 +29,56 @@ export const SITE_IMAGE_LABELS: Record<SiteImageKey, string> = {
 
 export const SITE_IMAGE_KEYS = Object.keys(SITE_IMAGE_LABELS) as SiteImageKey[];
 
+/* ---------------- appearance: colour palettes & display fonts, curated by season ---------------- */
+
+export type Season = "spring" | "summer" | "autumn" | "winter";
+
+export const SEASONS: { id: Season; name: string; blurb: string }[] = [
+  { id: "autumn", name: "Autumn", blurb: "Harvest tones — the site's original mood." },
+  { id: "winter", name: "Winter", blurb: "Cool, quiet, low-saturation." },
+  { id: "spring", name: "Spring", blurb: "Fresh growth, first blossom." },
+  { id: "summer", name: "Summer", blurb: "Sun-baked and vivid." },
+];
+
+export interface PaletteDef {
+  id: string;
+  season: Season;
+  name: string;
+  garnet: string;
+  vine: string;
+  ochre: string;
+}
+
+export const PALETTE_CATALOG: PaletteDef[] = [
+  { id: "granite", season: "autumn", name: "Granite", garnet: "#67252f", vine: "#4c5b3f", ochre: "#b77a2e" },
+  { id: "orchard", season: "autumn", name: "Orchard", garnet: "#5b2440", vine: "#3e5a44", ochre: "#9a6b23" },
+  { id: "frost", season: "winter", name: "Frost", garnet: "#4a2f4a", vine: "#35473f", ochre: "#8a7a52" },
+  { id: "slate", season: "winter", name: "Slate", garnet: "#43324a", vine: "#3c4a4a", ochre: "#7d6a4e" },
+  { id: "blossom", season: "spring", name: "Blossom", garnet: "#a24a5e", vine: "#5c7a4f", ochre: "#c9973f" },
+  { id: "meadow", season: "spring", name: "Meadow", garnet: "#8a4a5a", vine: "#6b8f5a", ochre: "#cfa64a" },
+  { id: "sunbaked", season: "summer", name: "Sun-baked", garnet: "#a13a2e", vine: "#4f7a52", ochre: "#d99a2b" },
+  { id: "harbour", season: "summer", name: "Harbour", garnet: "#8f2e3d", vine: "#2f6b5e", ochre: "#d1a23a" },
+];
+
+export interface FontDef {
+  id: string;
+  season: Season;
+  name: string;
+  family: string;
+  note: string;
+}
+
+export const FONT_CATALOG: FontDef[] = [
+  { id: "fraunces", season: "autumn", name: "Fraunces", family: '"Fraunces"', note: "Warm and a little weathered — the current voice." },
+  { id: "marcellus", season: "autumn", name: "Marcellus", family: '"Marcellus"', note: "Roman, quiet, carved-in-stone." },
+  { id: "spectral", season: "winter", name: "Spectral", family: '"Spectral"', note: "Crisp and literary — built for short, cold days." },
+  { id: "frankRuhl", season: "winter", name: "Frank Ruhl Libre", family: '"Frank Ruhl Libre"', note: "Dense, bookish, a little severe." },
+  { id: "cormorant", season: "spring", name: "Cormorant Garamond", family: '"Cormorant Garamond"', note: "Lighter and more formal." },
+  { id: "dmSerif", season: "spring", name: "DM Serif Display", family: '"DM Serif Display"', note: "Soft and warm — new growth." },
+  { id: "playfair", season: "summer", name: "Playfair Display", family: '"Playfair Display"', note: "High-contrast and dramatic — sun at its highest." },
+  { id: "bodoni", season: "summer", name: "Bodoni Moda", family: '"Bodoni Moda"', note: "Sharp, glossy, full glare." },
+];
+
 export type LeadType = "wedding" | "event" | "trade";
 export type EventSubtype = "party" | "dinner" | "launch" | "retreat";
 export type LeadStatus = "new" | "info_sent" | "visiting" | "negotiating" | "booked" | "archived";
@@ -275,8 +325,10 @@ export interface SiteConfig {
   eventBallparks: Ballpark[];
   inclusions: string[];
   typedLines: TypedLine[];
-  palette: "granite" | "orchard";
-  displayFont: "fraunces" | "cormorant" | "marcellus";
+  /** A PaletteDef id from PALETTE_CATALOG — kept loose (not a union) so the catalog can grow without a migration. */
+  palette: string;
+  /** A FontDef id from FONT_CATALOG. */
+  displayFont: string;
 }
 
 /* ---------------- helpers ---------------- */

@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   BeeSearchProfile, BlogPost, CartLine, EmailSend, Lead, LeadNote, LeadStatus, Order, OutboxItem, Product,
   ProductImage, Sequence, SequenceStep, SiteConfig, SiteImageKey, TradeOrder,
-  IMG, referencedImageIds,
+  IMG, FONT_CATALOG, PALETTE_CATALOG, referencedImageIds,
   DAY, dstr, iso, readingMinutes, seedConfig, seedLeads, seedNotes, seedOrders, seedOutbox, seedPosts,
   seedProducts, seedProfiles, seedSequences, seedSends, seedTradeOrders, slugify, uid,
 } from "./data";
@@ -793,20 +793,12 @@ export function useApplyAppearance() {
   const { config } = useStore();
   useEffect(() => {
     const root = document.documentElement;
-    const palettes: Record<SiteConfig["palette"], { g: string; v: string; o: string }> = {
-      granite: { g: "#67252f", v: "#4c5b3f", o: "#b77a2e" },
-      orchard: { g: "#5b2440", v: "#3e5a44", o: "#9a6b23" },
-    };
-    const fonts: Record<SiteConfig["displayFont"], string> = {
-      fraunces: '"Fraunces"',
-      cormorant: '"Cormorant Garamond"',
-      marcellus: '"Marcellus"',
-    };
-    const p = palettes[config.palette] ?? palettes.granite;
-    root.style.setProperty("--acc-garnet", p.g);
-    root.style.setProperty("--acc-vine", p.v);
-    root.style.setProperty("--acc-ochre", p.o);
-    root.style.setProperty("--display-font", fonts[config.displayFont] ?? fonts.fraunces);
+    const palette = PALETTE_CATALOG.find((p) => p.id === config.palette) ?? PALETTE_CATALOG[0];
+    const font = FONT_CATALOG.find((f) => f.id === config.displayFont) ?? FONT_CATALOG[0];
+    root.style.setProperty("--acc-garnet", palette.garnet);
+    root.style.setProperty("--acc-vine", palette.vine);
+    root.style.setProperty("--acc-ochre", palette.ochre);
+    root.style.setProperty("--display-font", font.family);
   }, [config.palette, config.displayFont]);
 }
 
