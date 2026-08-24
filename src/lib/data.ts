@@ -35,7 +35,7 @@ export type Season = "spring" | "summer" | "autumn" | "winter";
 
 export const SEASONS: { id: Season; name: string; blurb: string }[] = [
   { id: "autumn", name: "Autumn", blurb: "Harvest tones — the site's original mood." },
-  { id: "winter", name: "Winter", blurb: "Cool, quiet, low-saturation." },
+  { id: "winter", name: "Winter", blurb: "Soft blues, gold highlights." },
   { id: "spring", name: "Spring", blurb: "Fresh growth, first blossom." },
   { id: "summer", name: "Summer", blurb: "Sun-baked and vivid." },
 ];
@@ -50,14 +50,20 @@ export interface PaletteDef {
 }
 
 export const PALETTE_CATALOG: PaletteDef[] = [
+  // Autumn — the site's original harvest wine-reds and olive greens. Unchanged.
   { id: "granite", season: "autumn", name: "Granite", garnet: "#67252f", vine: "#4c5b3f", ochre: "#b77a2e" },
   { id: "orchard", season: "autumn", name: "Orchard", garnet: "#5b2440", vine: "#3e5a44", ochre: "#9a6b23" },
-  { id: "frost", season: "winter", name: "Frost", garnet: "#4a2f4a", vine: "#35473f", ochre: "#8a7a52" },
-  { id: "slate", season: "winter", name: "Slate", garnet: "#43324a", vine: "#3c4a4a", ochre: "#7d6a4e" },
-  { id: "blossom", season: "spring", name: "Blossom", garnet: "#a24a5e", vine: "#5c7a4f", ochre: "#c9973f" },
-  { id: "meadow", season: "spring", name: "Meadow", garnet: "#8a4a5a", vine: "#6b8f5a", ochre: "#cfa64a" },
-  { id: "sunbaked", season: "summer", name: "Sun-baked", garnet: "#a13a2e", vine: "#4f7a52", ochre: "#d99a2b" },
-  { id: "harbour", season: "summer", name: "Harbour", garnet: "#8f2e3d", vine: "#2f6b5e", ochre: "#d1a23a" },
+  // Winter — soft blues with gold highlights, a genuinely different hue family from the rest.
+  { id: "frost", season: "winter", name: "Frost", garnet: "#3f6d8f", vine: "#2c4a5c", ochre: "#c9a227" },
+  { id: "midwinter", season: "winter", name: "Midwinter", garnet: "#5c7a99", vine: "#35506b", ochre: "#b8933f" },
+  // Spring — light, pastel blossom pinks and fresh greens.
+  { id: "blossom", season: "spring", name: "Blossom", garnet: "#c97b93", vine: "#6b8f5a", ochre: "#dcb35a" },
+  { id: "meadow", season: "spring", name: "Meadow", garnet: "#a8738a", vine: "#7fa363", ochre: "#d9c26a" },
+  // Summer — vivid, sun-drenched warm tones, plus a Valentine's Day pink-and-white option
+  // (February is high summer here, not winter — this is a Southern Hemisphere vineyard).
+  { id: "sunbaked", season: "summer", name: "Sun-baked", garnet: "#c9502e", vine: "#4f8f5e", ochre: "#e8a02e" },
+  { id: "harbour", season: "summer", name: "Harbour", garnet: "#b23a4a", vine: "#2e7a6e", ochre: "#dbb23a" },
+  { id: "valentines", season: "summer", name: "Valentine's Day", garnet: "#c23b5e", vine: "#7a2f42", ochre: "#e8a6b8" },
 ];
 
 export interface FontDef {
