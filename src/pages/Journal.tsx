@@ -81,7 +81,7 @@ export default function Journal() {
                 onClick={() => setCategory(c)}
                 aria-pressed={category === c}
                 className={`px-4 py-2 min-h-[42px] border-2 border-granite-900 font-label text-[0.72rem] font-semibold uppercase tracking-[0.1em] transition-colors ${
-                  category === c ? "bg-granite-900 text-bone" : "bg-bone hover:bg-granite-100"
+                  category === c ? "bg-dark text-bone" : "bg-bone hover:bg-granite-100"
                 }`}
               >
                 {c}

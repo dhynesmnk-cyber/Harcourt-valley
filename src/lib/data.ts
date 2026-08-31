@@ -205,15 +205,25 @@ export interface EmailSend {
   status: "scheduled" | "sent";
 }
 
-/** What kind of business a BeeSearch target profile looks for — decides which directory it's matched against. */
+/** What kind of business an account or prospect is — decides which directory a search is matched against. */
 export type ProspectKind = "stockist" | "planner";
 
-export interface BeeSearchProfile {
+/**
+ * A business the client already works with — a stockist they already supply,
+ * a planner they already get bookings from. This is the roster BeeSearch
+ * starts from: add what you already have, then "discover new ones" finds
+ * more like it. The client adds and updates this list themselves, whenever.
+ */
+export interface BeeSearchAccount {
   id: string;
-  name: string;
-  who: string;
+  business: string;
+  contact: string;
+  email: string;
+  phone: string;
+  town: string;
   kind: ProspectKind;
-  criteria: string[];
+  notes: string;
+  addedAt: string;
 }
 
 /**
@@ -335,6 +345,10 @@ export interface SiteConfig {
   palette: string;
   /** A FontDef id from FONT_CATALOG. */
   displayFont: string;
+  /** Hex colours, independent of the season palette above — body/heading text, the light surface, and dark surfaces (nav, footer, dark buttons). Borders and shadows are never affected by these. */
+  textColor: string;
+  bgLight: string;
+  bgDark: string;
 }
 
 /* ---------------- helpers ---------------- */
@@ -580,17 +594,19 @@ export function seedOrders(): Order[] {
   ];
 }
 
-export function seedProfiles(): BeeSearchProfile[] {
+export function seedAccounts(): BeeSearchAccount[] {
   return [
     {
-      id: "bp1", name: "Regional stockists", kind: "stockist",
-      who: "Independent bottle shops, wine bars and restaurants within a day's drive of Harcourt.",
-      criteria: ["Independent bottle shops & wine bars", "Regional VIC & the Murray", "Already stock premium Central Victorian reds"],
+      id: "ba1", business: "Lake View Bottle Shop", contact: "Renata Kovic", email: "orders@lakeviewbottles.example.com",
+      phone: "03 5472 1188", town: "Bendigo", kind: "stockist", notes: "Standing trade order — see Trade orders.", addedAt: iso(-40),
     },
     {
-      id: "bp2", name: "Wedding & event planners", kind: "planner",
-      who: "Planners and corporate coordinators booking 60–140 guest events within 90 minutes of the valley.",
-      criteria: ["Planners within 90 min of Harcourt", "Couples & corporates of 60–140 guests", "Stylists who book vineyard venues already"],
+      id: "ba2", business: "Goldfields Dining Co.", contact: "Hugh Bramston", email: "hugh@goldfieldsdining.example.com",
+      phone: "03 5443 9021", town: "Bendigo", kind: "stockist", notes: "Monthly standing order since March.", addedAt: iso(-30),
+    },
+    {
+      id: "ba3", business: "Vine & Vow Celebrations", contact: "Sam Delaney", email: "sam@vineandvow.example.com",
+      phone: "03 5443 2287", town: "Bendigo", kind: "planner", notes: "Books two or three weddings here a year.", addedAt: iso(-60),
     },
   ];
 }
@@ -655,30 +671,21 @@ export function seedProspects(): Prospect[] {
 }
 
 /**
- * Works out which prospects fit a target profile, and *why* — the reasons are
- * plain facts about the prospect (distance, guest range, tags), plus, for
- * planner profiles, a comparison against the guest counts of your own booked
- * leads. Nothing here is invented or scored by a hidden model: every reason
- * traces back to a field you can see in the directory or your own pipeline.
+ * Works out which prospects fit — filtered to one kind, and to businesses not
+ * already on the client's own account roster — and *why*. The reasons are
+ * plain facts about the prospect (distance, guest range, tags). Nothing here
+ * is invented or scored by a hidden model: every reason traces back to a
+ * field you can see in the directory.
  */
-export function matchProspects(profile: BeeSearchProfile, prospects: Prospect[], bookedLeads: Lead[]): ProspectMatch[] {
-  const pool = prospects.filter((p) => p.kind === profile.kind);
-  const guestCounts = bookedLeads.map((l) => l.guestCount ?? 0).filter((g) => g > 0);
-  const lo = guestCounts.length ? Math.min(...guestCounts) : 60;
-  const hi = guestCounts.length ? Math.max(...guestCounts) : 120;
+export function matchProspects(kind: ProspectKind, prospects: Prospect[], existingAccounts: BeeSearchAccount[]): ProspectMatch[] {
+  const known = new Set(existingAccounts.map((a) => a.business.trim().toLowerCase()));
+  const pool = prospects.filter((p) => p.kind === kind && !known.has(p.business.trim().toLowerCase()));
 
   return pool
     .map((prospect) => {
       const reasons: string[] = [];
       if (prospect.distanceMins <= 90) reasons.push(`${prospect.distanceMins} minutes from the valley — within the 90-minute radius`);
-      if (profile.kind === "planner" && prospect.guestRange) {
-        const overlaps = prospect.guestRange[0] <= hi && prospect.guestRange[1] >= lo;
-        if (overlaps) {
-          reasons.push(
-            `Books events of ${prospect.guestRange[0]}–${prospect.guestRange[1]} guests — overlaps your booked range of ${lo}–${hi}`,
-          );
-        }
-      }
+      if (prospect.guestRange) reasons.push(`Books events of ${prospect.guestRange[0]}–${prospect.guestRange[1]} guests`);
       reasons.push(...prospect.tags);
       return { prospect, reasons };
     })
@@ -754,6 +761,9 @@ export function seedConfig(): SiteConfig {
     typedLines: seedTypedLines(),
     palette: "granite",
     displayFont: "fraunces",
+    textColor: "#26231f",
+    bgLight: "#f6f2e9",
+    bgDark: "#26231f",
   };
 }
 

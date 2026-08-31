@@ -35,7 +35,7 @@ function Thumb({ image, isPrimary, onAltChange, onRemove, onMakePrimary, onMove,
           </div>
         )}
         {isPrimary ? (
-          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-granite-900 text-bone text-[0.6rem] font-label font-bold uppercase tracking-[0.08em] px-1.5 py-1">
+          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-dark text-bone text-[0.6rem] font-label font-bold uppercase tracking-[0.08em] px-1.5 py-1">
             <StarIcon className="w-3 h-3" filled /> Cover
           </span>
         ) : null}
@@ -99,8 +99,8 @@ function EmptySlot({ onPick, dragActive }: { onPick: () => void; dragActive: boo
     <button
       type="button"
       onClick={onPick}
-      className={`aspect-square border-2 border-dashed grid place-items-center gap-1.5 text-granite-500 hover:border-granite-900 hover:text-granite-900 hover:bg-granite-100/50 transition-colors ${
-        dragActive ? "border-granite-900 bg-granite-100/70 text-granite-900" : "border-granite-300"
+      className={`aspect-square border-2 border-dashed grid place-items-center gap-1.5 text-granite-500 hover:border-granite-900 hover:text-ink hover:bg-granite-100/50 transition-colors ${
+        dragActive ? "border-granite-900 bg-granite-100/70 text-ink" : "border-granite-300"
       }`}
     >
       <UploadIcon className="w-5 h-5" />

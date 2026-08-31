@@ -427,7 +427,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <span className="w-2 h-2 rounded-full bg-vine" aria-hidden="true" />
                 <p className="kicker text-granite-500 text-[0.7rem]">Coming up · next 30 days</p>
               </div>
-              <button type="button" onClick={() => go("calendar")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+              <button type="button" onClick={() => go("calendar")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-ink">
                 Calendar →
               </button>
             </div>
@@ -453,7 +453,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <span className="w-2 h-2 rounded-full bg-granite-500" aria-hidden="true" />
                 <p className="kicker text-granite-500 text-[0.7rem]">Trade orders to pack</p>
               </div>
-              <button type="button" onClick={() => go("trade")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+              <button type="button" onClick={() => go("trade")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-ink">
                 Trade inbox →
               </button>
             </div>
@@ -481,7 +481,7 @@ function Overview({ go, openLead }: { go: (t: Tab) => void; openLead: (id: strin
                 <span className="w-2 h-2 rounded-full bg-ochre" aria-hidden="true" />
                 <p className="kicker text-granite-500 text-[0.7rem]">BeeSearch waiting on you</p>
               </div>
-              <button type="button" onClick={() => go("beesearch")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-granite-900">
+              <button type="button" onClick={() => go("beesearch")} className="inline-flex items-center min-h-[28px] px-1.5 -mr-1.5 text-xs font-label font-semibold text-granite-600 hover:text-ink">
                 BeeSearch →
               </button>
             </div>
@@ -653,13 +653,13 @@ export default function Admin() {
               onClick={() => go(t.id)}
               aria-current={tab === t.id ? "page" : undefined}
               className={`w-auto md:w-full flex items-center gap-2.5 px-2.5 py-2.5 min-h-[44px] font-label text-[0.8rem] font-semibold border-2 transition-colors whitespace-nowrap ${
-                tab === t.id ? "border-granite-900 bg-granite-900 text-bone" : "border-transparent text-granite-700 hover:bg-granite-100"
+                tab === t.id ? "border-granite-900 bg-dark text-bone" : "border-transparent text-granite-700 hover:bg-granite-100"
               }`}
             >
               <Glyph tab={t.id} />
               {t.label}
               {t.id === "leads" && newCount > 0 ? (
-                <span className={`ml-auto text-[0.65rem] font-bold px-1.5 py-0.5 border ${tab === t.id ? "border-bone/50 text-bone" : "border-granite-900 text-granite-900 bg-ochre"}`}>
+                <span className={`ml-auto text-[0.65rem] font-bold px-1.5 py-0.5 border ${tab === t.id ? "border-bone/50 text-bone" : "border-granite-900 text-ink bg-ochre"}`}>
                   {newCount}
                 </span>
               ) : null}

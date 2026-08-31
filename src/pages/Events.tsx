@@ -231,7 +231,7 @@ export default function Events() {
               <ul className="mt-4 divide-y divide-granite-300">
                 {config.eventBallparks.map((b) => (
                   <li key={b.label} className="py-2.5 flex flex-wrap items-baseline justify-between gap-x-4">
-                    <span className="text-sm font-label font-semibold text-granite-900">{b.label}</span>
+                    <span className="text-sm font-label font-semibold text-ink">{b.label}</span>
                     <span className="font-display text-lg font-medium text-vine">{b.range}</span>
                   </li>
                 ))}

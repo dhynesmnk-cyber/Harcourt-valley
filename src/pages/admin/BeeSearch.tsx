@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import {
   fmtDate, matchProspects, seedProspects, timeAgo,
-  type BeeSearchProfile, type OutboxItem, type ProspectKind, type ProspectMatch,
+  type BeeSearchAccount, type OutboxItem, type ProspectKind, type ProspectMatch,
 } from "../../lib/data";
 import { useStore } from "../../lib/store";
 import { discoverProspects, dismissCandidate, enrichCandidate, saveManualEmail, type DiscoveredCandidate } from "../../lib/beesearch";
 import { isRemote } from "../../lib/supabase";
-import { ArrowRight, CloseIcon, FactGrid, PlusIcon, SearchIcon, SendIcon, Tick, validEmail } from "../../components/ui";
+import { ArrowRight, CloseIcon, FactGrid, PlusIcon, SendIcon, Tick, TrashIcon, validEmail } from "../../components/ui";
 import type { Tab } from "./Admin";
 
 const PROSPECTS = seedProspects();
@@ -37,36 +37,36 @@ function HowItWorks() {
       <p className="kicker text-granite-500">How BeeSearch actually works</p>
       <ul className="mt-3 space-y-2 text-sm text-granite-700 leading-relaxed">
         <li>
-          <span className="font-label font-semibold text-granite-900">It reads your own bookings.</span> "Teach it from your bookings"
-          looks at leads you've marked Booked — nothing else — to work out the guest counts and event shapes that already say yes to you.
+          <span className="font-label font-semibold text-ink">Start with who you already know.</span> Add the stockists and
+          planners you already work with as accounts — no search, no cost, just a list you keep up to date.
         </li>
         {isRemote ? (
           <li>
-            <span className="font-label font-semibold text-granite-900">Matches are a real search, not a guess.</span> Each search calls
-            the Google Places API for businesses within roughly 90 minutes of the valley. It costs a small amount of money per search, so
-            it only ever runs when you press a button — never automatically, never in the background.
+            <span className="font-label font-semibold text-ink">Discovery is a real search, not a guess.</span> "Find more like
+            mine" calls the Google Places API for businesses of the same kind within roughly 90 minutes of the valley, and skips anything
+            already on your account list. It costs a small amount of money per search, so it only ever runs when you press a button.
           </li>
         ) : (
           <li>
-            <span className="font-label font-semibold text-granite-900">This demo matches against a small, named sample.</span> No live
+            <span className="font-label font-semibold text-ink">This demo matches against a small, named sample.</span> No live
             search is running — matches come from ten example businesses kept in the code, so the feature is usable before a real backend
             is connected. See BEESEARCH.md to turn on live search.
           </li>
         )}
         <li>
-          <span className="font-label font-semibold text-granite-900">Every match shows its reasons.</span> "Matched on" under each
+          <span className="font-label font-semibold text-ink">Every match shows its reasons.</span> "Matched on" under each
           suggestion is the literal, specific reason it was picked — distance, guest range, or a stated fact. Nothing is a hidden score.
         </li>
         {isRemote ? (
           <li>
-            <span className="font-label font-semibold text-granite-900">Contact lookup checks one site at a time, on request.</span>{" "}
+            <span className="font-label font-semibold text-ink">Contact lookup checks one site at a time, on request.</span>{" "}
             "Find contact details" visits that one business's own website — never a bulk crawl — honours their robots.txt, and never
             invents an email. Whether reaching out needs consent under Australia's Spam Act is your own call per business, not something
             this tool decides.
           </li>
         ) : null}
         <li>
-          <span className="font-label font-semibold text-granite-900">Nothing leaves on its own.</span> Draft → Approve → Send is two
+          <span className="font-label font-semibold text-ink">Nothing leaves on its own.</span> Draft → Approve → Send is two
           separate presses, both yours. A reply gets logged by you, and converting one to an enquiry is one more press, whenever you're
           ready.
         </li>
@@ -91,7 +91,7 @@ function MatchCard({ m, onDraft }: { m: ProspectMatch; onDraft: () => void }) {
           </li>
         ))}
       </ul>
-      <button type="button" className="btn btn-sm bg-bone text-granite-900 mt-3 w-full" onClick={onDraft}>
+      <button type="button" className="btn btn-sm bg-bone text-ink mt-3 w-full" onClick={onDraft}>
         Write the email
       </button>
     </div>
@@ -145,7 +145,7 @@ function LiveCandidateCard({
             {blocked ? <p className="text-[0.68rem] text-granite-400 mb-1.5">Their site blocks automatic checks.</p> : null}
             <input
               type="email"
-              className="field-input text-xs py-1.5 bg-bone text-granite-900"
+              className="field-input text-xs py-1.5 bg-bone text-ink"
               placeholder="Or enter an email you found yourself"
               value={manualValue}
               onChange={(e) => onManualChange(e.target.value)}
@@ -159,7 +159,7 @@ function LiveCandidateCard({
             {enriching ? "Checking…" : "Find contact details"}
           </button>
         ) : null}
-        <button type="button" className="btn btn-sm bg-bone text-granite-900 flex-1" onClick={onDraft} disabled={!hasEmail && !manualValue.trim()}>
+        <button type="button" className="btn btn-sm bg-bone text-ink flex-1" onClick={onDraft} disabled={!hasEmail && !manualValue.trim()}>
           Write the email
         </button>
       </div>
@@ -167,93 +167,172 @@ function LiveCandidateCard({
   );
 }
 
+/* ---------------- your accounts ---------------- */
+
+const emptyAccountForm = { business: "", contact: "", email: "", phone: "", town: "", kind: "stockist" as ProspectKind, notes: "" };
+
+function AccountCard({ account, onEdit, onRemove }: { account: BeeSearchAccount; onEdit: () => void; onRemove: () => void }) {
+  return (
+    <div className="border-2 border-granite-900 bg-bone p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-label font-semibold text-sm truncate">{account.business}</p>
+            <span className="text-[0.6rem] font-label font-bold uppercase tracking-[0.08em] border border-granite-300 px-1.5 py-0.5 text-granite-500 shrink-0">
+              {account.kind === "planner" ? "Planner" : "Stockist"}
+            </span>
+          </div>
+          <p className="text-xs text-granite-500 mt-0.5 truncate">
+            {[account.town, account.contact].filter(Boolean).join(" · ") || "No details yet"}
+          </p>
+        </div>
+        <button type="button" className="text-granite-400 hover:text-garnet shrink-0" onClick={onRemove} aria-label={`Remove ${account.business}`}>
+          <TrashIcon className="w-4 h-4" />
+        </button>
+      </div>
+      {account.notes ? <p className="text-xs text-granite-700 mt-2 leading-relaxed">{account.notes}</p> : null}
+      <button type="button" className="btn btn-ghost btn-sm mt-3 w-full" onClick={onEdit}>
+        Edit
+      </button>
+    </div>
+  );
+}
+
+function AccountForm({
+  draft, onChange, onSave, onCancel, editing,
+}: {
+  draft: typeof emptyAccountForm;
+  onChange: (patch: Partial<typeof emptyAccountForm>) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  editing: boolean;
+}) {
+  return (
+    <div className="border-2 border-dashed border-granite-300 p-5">
+      <p className="kicker text-granite-500">{editing ? "Edit this account" : "Add an account"}</p>
+      <div className="mt-3 space-y-2.5">
+        <label className="sr-only" htmlFor="acc-business">
+          Business name
+        </label>
+        <input id="acc-business" className="field-input" placeholder="Business name" value={draft.business} onChange={(e) => onChange({ business: e.target.value })} />
+        <label className="sr-only" htmlFor="acc-kind">
+          Kind
+        </label>
+        <select id="acc-kind" className="field-input" value={draft.kind} onChange={(e) => onChange({ kind: e.target.value as ProspectKind })}>
+          <option value="stockist">Stockist</option>
+          <option value="planner">Planner</option>
+        </select>
+        <label className="sr-only" htmlFor="acc-contact">
+          Contact name
+        </label>
+        <input id="acc-contact" className="field-input" placeholder="Contact name" value={draft.contact} onChange={(e) => onChange({ contact: e.target.value })} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <div>
+            <label className="sr-only" htmlFor="acc-email">
+              Email
+            </label>
+            <input id="acc-email" type="email" className="field-input" placeholder="Email" value={draft.email} onChange={(e) => onChange({ email: e.target.value })} />
+          </div>
+          <div>
+            <label className="sr-only" htmlFor="acc-phone">
+              Phone
+            </label>
+            <input id="acc-phone" className="field-input" placeholder="Phone" value={draft.phone} onChange={(e) => onChange({ phone: e.target.value })} />
+          </div>
+        </div>
+        <label className="sr-only" htmlFor="acc-town">
+          Town
+        </label>
+        <input id="acc-town" className="field-input" placeholder="Town" value={draft.town} onChange={(e) => onChange({ town: e.target.value })} />
+        <label className="sr-only" htmlFor="acc-notes">
+          Notes
+        </label>
+        <textarea id="acc-notes" className="field-input min-h-[60px]" placeholder="Notes — optional" value={draft.notes} onChange={(e) => onChange({ notes: e.target.value })} />
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-dark btn-sm flex-1" onClick={onSave}>
+            {editing ? <Tick className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />} {editing ? "Save changes" : "Add this account"}
+          </button>
+          {editing ? (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+              Cancel
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLead?: (id: string) => void }) {
-  const { profiles, addProfile, addOutbox, outbox, setOutboxState, convertOutboxToLead, leads, toast } = useStore();
-  const [newName, setNewName] = useState("");
-  const [newWho, setNewWho] = useState("");
-  const [newKind, setNewKind] = useState<ProspectKind>("stockist");
-  const [profileErr, setProfileErr] = useState("");
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analysisStage, setAnalysisStage] = useState(0);
-  const [results, setResults] = useState<{ criteria: string[]; matches: ProspectMatch[]; profileName: string; kind: ProspectKind } | null>(null);
-  const [liveLoading, setLiveLoading] = useState(false);
+  const { accounts, addAccount, updateAccount, removeAccount, addOutbox, outbox, setOutboxState, convertOutboxToLead, toast } = useStore();
+  const [accountDraft, setAccountDraft] = useState(emptyAccountForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [accountErr, setAccountErr] = useState("");
+  const [results, setResults] = useState<{ criteria: string[]; matches: ProspectMatch[]; kind: ProspectKind } | null>(null);
+  const [liveLoading, setLiveLoading] = useState<ProspectKind | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
-  const [liveResults, setLiveResults] = useState<{ criteria: string[]; candidates: DiscoveredCandidate[]; profileName: string; kind: ProspectKind } | null>(null);
+  const [liveResults, setLiveResults] = useState<{ criteria: string[]; candidates: DiscoveredCandidate[]; kind: ProspectKind } | null>(null);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [blockedIds, setBlockedIds] = useState<Record<string, boolean>>({});
   const [manualEmail, setManualEmail] = useState<Record<string, string>>({});
   const [review, setReview] = useState<OutboxItem | null>(null);
   const [showClosed, setShowClosed] = useState(false);
 
-  const booked = leads.filter((l) => l.status === "booked");
+  const stockistAccounts = accounts.filter((a) => a.kind === "stockist");
+  const plannerAccounts = accounts.filter((a) => a.kind === "planner");
 
-  const plannerProfile = profiles.find((p) => p.kind === "planner") ?? profiles[0];
-
-  const bookingCriteria = () => {
-    const weddings = booked.filter((l) => l.type === "wedding").length;
-    const guests = booked.map((l) => l.guestCount ?? 0).filter((g) => g > 0);
-    const lo = guests.length ? Math.min(...guests) : 60;
-    const hi = guests.length ? Math.max(...guests) : 120;
-    return [
-      `${booked.length} bookings read (${weddings} weddings)`,
-      `Guest counts between ${lo} and ${hi}`,
-      "Regional Victoria, within a 90-minute drive",
-    ];
+  const criteriaFor = (kind: ProspectKind) => {
+    const count = (kind === "stockist" ? stockistAccounts : plannerAccounts).length;
+    return [`${count} ${kind}${count === 1 ? "" : "s"} you already work with`, "Regional Victoria, within a 90-minute drive"];
   };
 
-  const runLiveSearch = async (kind: ProspectKind, profileName: string, criteria: string[]) => {
-    setLiveLoading(true);
-    setLiveError(null);
-    setLiveResults(null);
+  const findMore = async (kind: ProspectKind) => {
     setResults(null);
-    const r = await discoverProspects(kind);
-    setLiveLoading(false);
-    if (!r.ok) {
-      setLiveError(r.message);
-      return;
-    }
-    setLiveResults({ profileName, kind, criteria, candidates: r.candidates.filter((c) => c.status !== "dismissed") });
-  };
-
-  const runAnalysis = () => {
-    if (!plannerProfile) return;
-    if (isRemote) {
-      void runLiveSearch("planner", "Based on your best bookings", bookingCriteria());
-      return;
-    }
-    setAnalyzing(true);
-    setResults(null);
-    setAnalysisStage(0);
-    const stages = [500, 1100, 1700];
-    stages.forEach((ms, i) => window.setTimeout(() => setAnalysisStage(i + 1), ms));
-    window.setTimeout(() => {
-      const matches = matchProspects(plannerProfile, PROSPECTS, booked).slice(0, 3);
-      setResults({ profileName: "Based on your best bookings", kind: "planner", criteria: bookingCriteria(), matches });
-      setAnalyzing(false);
-    }, 2100);
-  };
-
-  const findMatches = (p: BeeSearchProfile) => {
-    if (isRemote) {
-      void runLiveSearch(p.kind, `Matches for "${p.name}"`, p.criteria);
-      return;
-    }
     setLiveResults(null);
     setLiveError(null);
-    setResults({ profileName: `Matches for "${p.name}"`, kind: p.kind, criteria: p.criteria, matches: matchProspects(p, PROSPECTS, booked) });
-  };
-
-  const addCustomProfile = () => {
-    if (newName.trim().length < 2 || newWho.trim().length < 5) {
-      setProfileErr("Give the target a name and a sentence about who it's for.");
+    const criteria = criteriaFor(kind);
+    if (isRemote) {
+      setLiveLoading(kind);
+      const r = await discoverProspects(kind);
+      setLiveLoading(null);
+      if (!r.ok) {
+        setLiveError(r.message);
+        return;
+      }
+      const known = new Set(accounts.map((a) => a.business.trim().toLowerCase()));
+      const candidates = r.candidates.filter((c) => c.status !== "dismissed" && !known.has(c.business.trim().toLowerCase()));
+      setLiveResults({ kind, criteria, candidates });
       return;
     }
-    setProfileErr("");
-    addProfile({ name: newName.trim(), who: newWho.trim(), kind: newKind, criteria: ["Custom target — criteria to refine together"] });
-    toast(`Target "${newName.trim()}" added.`);
-    setNewName("");
-    setNewWho("");
-    setNewKind("stockist");
+    setResults({ kind, criteria, matches: matchProspects(kind, PROSPECTS, accounts) });
+  };
+
+  const startAdd = () => {
+    setEditingId(null);
+    setAccountDraft(emptyAccountForm);
+    setAccountErr("");
+  };
+
+  const startEdit = (a: BeeSearchAccount) => {
+    setEditingId(a.id);
+    setAccountDraft({ business: a.business, contact: a.contact, email: a.email, phone: a.phone, town: a.town, kind: a.kind, notes: a.notes });
+    setAccountErr("");
+  };
+
+  const saveAccount = () => {
+    if (accountDraft.business.trim().length < 2) {
+      setAccountErr("Give it a business name at least.");
+      return;
+    }
+    setAccountErr("");
+    if (editingId) {
+      updateAccount(editingId, accountDraft);
+      toast(`${accountDraft.business.trim()} updated.`);
+    } else {
+      addAccount(accountDraft);
+      toast(`${accountDraft.business.trim()} added to your accounts.`);
+    }
+    startAdd();
   };
 
   const generateDraft = (kind: ProspectKind, m: ProspectMatch) => {
@@ -333,8 +412,8 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
 
   const facts = [
     {
-      label: "Targets tracked", value: String(profiles.length),
-      detail: `${profiles.filter((p) => p.kind === "stockist").length} stockist · ${profiles.filter((p) => p.kind === "planner").length} planner`,
+      label: "Accounts on file", value: String(accounts.length),
+      detail: `${stockistAccounts.length} stockist · ${plannerAccounts.length} planner`,
     },
     { label: "In the outbox", value: String(grouped.draft.length + grouped.approved.length), detail: `${grouped.draft.length} draft · ${grouped.approved.length} approved` },
     { label: "Sent", value: String(sentCount), detail: sentCount === 0 ? "None yet" : "Emails that have gone out" },
@@ -342,13 +421,15 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
     { label: "Converted to enquiries", value: String(convertedCount), detail: "Now tracked in the pipeline" },
   ] as const;
 
+  const activeResults = results ?? liveResults;
+
   return (
     <div>
       <p className="kicker text-granite-500">Outreach · BeeSearch</p>
       <h1 className="font-display text-3xl sm:text-4xl font-medium mt-1.5">Go and find the next ones.</h1>
       <p className="text-sm text-granite-500 mt-2 max-w-2xl">
-        BeeSearch looks for businesses like your best customers and writes the first email in the family voice. Nothing sends without you
-        pressing Approve, then Send. Two presses, on purpose.
+        Add who you already work with, then find more like them. BeeSearch writes the first email in the family voice — nothing sends
+        without you pressing Approve, then Send.
       </p>
 
       <HowItWorks />
@@ -357,26 +438,52 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
         <FactGrid facts={facts} />
       </div>
 
-      {/* Seed from best customers */}
-      <div className="mt-8 border-2 border-granite-900 bg-granite-900 text-bone p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-4 justify-between">
-          <div>
-            <p className="kicker text-granite-300">Find leads like my best customers</p>
-            <p className="font-display text-2xl font-medium mt-1.5">Teach it from your bookings.</p>
-          </div>
-          <button type="button" className="btn bg-bone text-granite-900" onClick={runAnalysis} disabled={analyzing || liveLoading || !plannerProfile}>
-            {analyzing ? "Reading your bookings…" : liveLoading ? "Searching…" : "Run the analysis"}
-            {!analyzing && !liveLoading ? <ArrowRight className="w-4 h-4" /> : null}
+      {/* Step 1: accounts */}
+      <div className="mt-10">
+        <p className="kicker text-granite-500">Step 1</p>
+        <h2 className="font-display text-2xl font-medium mt-1">Your accounts.</h2>
+        <p className="text-sm text-granite-500 mt-1.5 max-w-2xl">The stockists and planners you already work with. Add to this whenever — nothing here costs anything or searches anywhere.</p>
+        <div className="mt-4 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {accounts.map((a) => (
+            <AccountCard key={a.id} account={a} onEdit={() => startEdit(a)} onRemove={() => { removeAccount(a.id); toast(`${a.business} removed.`); }} />
+          ))}
+          <AccountForm
+            draft={accountDraft}
+            onChange={(patch) => setAccountDraft((d) => ({ ...d, ...patch }))}
+            onSave={saveAccount}
+            onCancel={startAdd}
+            editing={Boolean(editingId)}
+          />
+        </div>
+        {accountErr ? <p className="field-error mt-2">{accountErr}</p> : null}
+      </div>
+
+      {/* Step 2: discover */}
+      <div className="mt-10 border-2 border-granite-900 bg-dark text-bone p-6 sm:p-8">
+        <p className="kicker text-granite-300">Step 2</p>
+        <p className="font-display text-2xl font-medium mt-1.5">Find more like these.</p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="btn bg-bone text-ink"
+            onClick={() => void findMore("stockist")}
+            disabled={stockistAccounts.length === 0 || liveLoading !== null}
+          >
+            {liveLoading === "stockist" ? "Searching…" : "Find more stockists like mine"}
+            {liveLoading !== "stockist" ? <ArrowRight className="w-4 h-4" /> : null}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost border border-bone/40 text-bone hover:bg-bone/10"
+            onClick={() => void findMore("planner")}
+            disabled={plannerAccounts.length === 0 || liveLoading !== null}
+          >
+            {liveLoading === "planner" ? "Searching…" : "Find more planners like mine"}
+            {liveLoading !== "planner" ? <ArrowRight className="w-4 h-4" /> : null}
           </button>
         </div>
-        {analyzing ? (
-          <ul className="mt-5 space-y-2 text-sm text-granite-300" aria-live="polite">
-            {["Reading your booked leads…", "Working out the guest-count range that says yes…", "Checking the directory for businesses that fit…"].map((s, i) => (
-              <li key={s} className={`flex items-center gap-3 transition-opacity ${analysisStage > i ? "opacity-100" : "opacity-30"}`}>
-                <span className={`w-2 h-2 ${analysisStage > i ? "bg-ochre" : "bg-granite-500"}`} /> {s}
-              </li>
-            ))}
-          </ul>
+        {stockistAccounts.length === 0 && plannerAccounts.length === 0 ? (
+          <p className="mt-4 text-sm text-granite-300">Add at least one account above first — discovery needs to know what "like this" means.</p>
         ) : null}
 
         {liveLoading ? <p className="mt-5 text-sm text-granite-300" aria-live="polite">Calling the Places API — this can take a few seconds…</p> : null}
@@ -386,120 +493,56 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
           </p>
         ) : null}
 
-        {results ? (
+        {activeResults ? (
           <div className="mt-6 rise-in">
-            <p className="kicker text-granite-300">{results.profileName}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {results.criteria.map((c) => (
+            <div className="flex flex-wrap gap-2">
+              {activeResults.criteria.map((c) => (
                 <span key={c} className="border border-granite-500 px-3 py-1.5 text-xs font-label font-semibold">
                   {c}
                 </span>
               ))}
             </div>
-            {results.matches.length === 0 ? (
-              <p className="mt-5 text-sm text-granite-300">Nothing in the directory fits this target yet.</p>
-            ) : (
-              <div className="mt-5 grid sm:grid-cols-3 gap-3">
-                {results.matches.map((m) => (
-                  <MatchCard key={m.prospect.business} m={m} onDraft={() => generateDraft(results.kind, m)} />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {liveResults ? (
-          <div className="mt-6 rise-in">
-            <p className="kicker text-granite-300">{liveResults.profileName}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {liveResults.criteria.map((c) => (
-                <span key={c} className="border border-granite-500 px-3 py-1.5 text-xs font-label font-semibold">
-                  {c}
-                </span>
-              ))}
-            </div>
-            {liveResults.candidates.length === 0 ? (
-              <p className="mt-5 text-sm text-granite-300">No businesses turned up in the search radius for this kind of target.</p>
-            ) : (
-              <div className="mt-5 grid sm:grid-cols-3 gap-3">
-                {liveResults.candidates.map((c) => (
-                  <LiveCandidateCard
-                    key={c.id}
-                    c={c}
-                    enriching={enrichingId === c.id}
-                    blocked={Boolean(blockedIds[c.id])}
-                    manualValue={manualEmail[c.id] ?? ""}
-                    onManualChange={(v) => setManualEmail((m) => ({ ...m, [c.id]: v }))}
-                    onEnrich={() => void enrich(c)}
-                    onDismiss={() => void dismissLive(c)}
-                    onDraft={() => void writeFromCandidate(liveResults.kind, c)}
-                  />
-                ))}
-              </div>
-            )}
+            {results ? (
+              results.matches.length === 0 ? (
+                <p className="mt-5 text-sm text-granite-300">Nothing new in the directory fits yet.</p>
+              ) : (
+                <div className="mt-5 grid sm:grid-cols-3 gap-3">
+                  {results.matches.map((m) => (
+                    <MatchCard key={m.prospect.business} m={m} onDraft={() => generateDraft(results.kind, m)} />
+                  ))}
+                </div>
+              )
+            ) : null}
+            {liveResults ? (
+              liveResults.candidates.length === 0 ? (
+                <p className="mt-5 text-sm text-granite-300">No new businesses turned up in the search radius.</p>
+              ) : (
+                <div className="mt-5 grid sm:grid-cols-3 gap-3">
+                  {liveResults.candidates.map((c) => (
+                    <LiveCandidateCard
+                      key={c.id}
+                      c={c}
+                      enriching={enrichingId === c.id}
+                      blocked={Boolean(blockedIds[c.id])}
+                      manualValue={manualEmail[c.id] ?? ""}
+                      onManualChange={(v) => setManualEmail((m) => ({ ...m, [c.id]: v }))}
+                      onEnrich={() => void enrich(c)}
+                      onDismiss={() => void dismissLive(c)}
+                      onDraft={() => void writeFromCandidate(liveResults.kind, c)}
+                    />
+                  ))}
+                </div>
+              )
+            ) : null}
           </div>
         ) : null}
       </div>
 
-      {/* Target profiles */}
-      <div className="mt-8">
-        <p className="kicker text-granite-500">Who we're looking for</p>
-        <div className="mt-3 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {profiles.map((p) => (
-            <div key={p.id} className="border-2 border-granite-900 bg-bone p-5">
-              <div className="flex items-center gap-2">
-                <p className="font-display text-xl font-medium">{p.name}</p>
-                <span className="text-[0.62rem] font-label font-bold uppercase tracking-[0.08em] border border-granite-300 px-1.5 py-0.5 text-granite-500">
-                  {p.kind === "planner" ? "Planner" : "Stockist"}
-                </span>
-              </div>
-              <p className="text-sm text-granite-700 mt-1.5 leading-relaxed">{p.who}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {p.criteria.map((c) => (
-                  <span key={c} className="text-[0.66rem] font-label font-semibold uppercase tracking-[0.06em] border border-granite-300 px-2 py-1 text-granite-700">
-                    {c}
-                  </span>
-                ))}
-              </div>
-              <button type="button" className="btn btn-ghost btn-sm mt-4" onClick={() => findMatches(p)} disabled={liveLoading}>
-                <SearchIcon className="w-3.5 h-3.5" /> Find matches
-              </button>
-            </div>
-          ))}
-          <div className="border-2 border-dashed border-granite-300 p-5">
-            <p className="kicker text-granite-500">Add a target</p>
-            <div className="mt-3 space-y-2.5">
-              <label className="sr-only" htmlFor="np-name">
-                Target name
-              </label>
-              <input id="np-name" className="field-input" placeholder="e.g. Festival organisers" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              <label className="sr-only" htmlFor="np-who">
-                Who it's for
-              </label>
-              <input id="np-who" className="field-input" placeholder="One sentence: who are they?" value={newWho} onChange={(e) => setNewWho(e.target.value)} />
-              <label className="sr-only" htmlFor="np-kind">
-                Directory to match against
-              </label>
-              <select id="np-kind" className="field-input" value={newKind} onChange={(e) => setNewKind(e.target.value as ProspectKind)}>
-                <option value="stockist">Matches against stockists</option>
-                <option value="planner">Matches against planners</option>
-              </select>
-              {profileErr ? <p className="field-error">{profileErr}</p> : null}
-              <button type="button" className="btn btn-dark btn-sm w-full" onClick={addCustomProfile}>
-                <PlusIcon className="w-3.5 h-3.5" /> Add this target
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Outbox */}
+      {/* Step 3: outbox */}
       <div className="mt-10">
+        <p className="kicker text-granite-500">Step 3</p>
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="kicker text-granite-500">The outbox</p>
-            <h2 className="font-display text-2xl font-medium mt-1">Draft → Approved → Sent → Replied. You hold every key.</h2>
-          </div>
+          <h2 className="font-display text-2xl font-medium mt-1">Draft → Approved → Sent → Replied. You hold every key.</h2>
           <p className="text-xs text-granite-500">Nothing leaves the building on its own.</p>
         </div>
         <div className="mt-5 grid lg:grid-cols-4 gap-5 items-start">
@@ -596,7 +639,7 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
           <div className="mt-5">
             <button
               type="button"
-              className="text-xs font-label font-semibold text-granite-600 hover:text-granite-900 inline-flex items-center gap-1.5"
+              className="text-xs font-label font-semibold text-granite-600 hover:text-ink inline-flex items-center gap-1.5"
               onClick={() => setShowClosed((v) => !v)}
               aria-expanded={showClosed}
             >
@@ -631,7 +674,7 @@ export function BeeSearchView({ go, openLead }: { go?: (t: Tab) => void; openLea
       {/* Review modal */}
       {review ? (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-          <button type="button" aria-label="Close" className="absolute inset-0 bg-granite-900/60 fade-in cursor-default" onClick={() => setReview(null)} />
+          <button type="button" aria-label="Close" className="absolute inset-0 bg-dark/60 fade-in cursor-default" onClick={() => setReview(null)} />
           <div className="rise-in relative bg-bone border-2 border-granite-900 shadow-hard w-full max-w-xl max-h-[85svh] overflow-y-auto thin-scroll" role="dialog" aria-modal="true">
             <div className="px-6 py-4 border-b-2 border-granite-900 flex items-center justify-between bg-granite-100/50">
               <p className="kicker text-granite-500">

@@ -60,7 +60,7 @@ function SitePhotoCard({ imgKey }: { imgKey: SiteImageKey }) {
       <div className="relative aspect-[4/3] bg-granite-100 border-b-2 border-granite-900">
         <img src={src} alt={SITE_IMAGE_LABELS[imgKey]} className="w-full h-full object-cover" loading="lazy" />
         {overridden ? (
-          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-granite-900 text-bone text-[0.6rem] font-label font-bold uppercase tracking-[0.08em] px-1.5 py-1">
+          <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-dark text-bone text-[0.6rem] font-label font-bold uppercase tracking-[0.08em] px-1.5 py-1">
             Your photo
           </span>
         ) : null}

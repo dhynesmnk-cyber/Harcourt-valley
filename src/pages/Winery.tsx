@@ -40,7 +40,7 @@ function ProductModal({ product, onClose }: { product: Product; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-      <button type="button" aria-label="Close product details" onClick={onClose} className="absolute inset-0 bg-granite-900/60 fade-in cursor-default" />
+      <button type="button" aria-label="Close product details" onClick={onClose} className="absolute inset-0 bg-dark/60 fade-in cursor-default" />
       <div className="rise-in relative bg-bone border-2 border-granite-900 shadow-hard w-full max-w-2xl grid sm:grid-cols-[240px_1fr] max-h-[90svh] overflow-y-auto thin-scroll" role="dialog" aria-modal="true" aria-label={product.name}>
         <ProductGallery product={product} />
         <div className="p-6 sm:p-8">
@@ -177,7 +177,7 @@ export default function Winery() {
                 Everything below is grown, made and bottled within a five-minute walk of where you'd be standing. Beer from the orchard next door, mead from the hives in the rows,
                 and wine from blocks your hosts can point at from the verandah.
               </p>
-              <p className="font-display italic text-xl text-granite-900">"If we wouldn't pour it at our own table, it doesn't get a label." — Tom</p>
+              <p className="font-display italic text-xl text-ink">"If we wouldn't pour it at our own table, it doesn't get a label." — Tom</p>
             </div>
             <div className="mt-8 border-t-2 border-granite-300 pt-7">
               <TypedLines page="winery" />
@@ -263,7 +263,7 @@ export default function Winery() {
       <ContourDivider />
 
       {/* Trade band */}
-      <section className="bg-granite-900 text-bone mt-4">
+      <section className="bg-dark text-bone mt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 grid lg:grid-cols-2 gap-10 items-center">
           <Reveal>
             <p className="kicker text-granite-500">Trade &amp; stockists</p>
@@ -279,7 +279,7 @@ export default function Winery() {
                 </li>
               ))}
             </ul>
-            <Link to="/winery/trade" className="btn bg-bone text-granite-900 mt-8">
+            <Link to="/winery/trade" className="btn bg-bone text-ink mt-8">
               Place a trade order <ArrowRight className="w-4 h-4" />
             </Link>
           </Reveal>

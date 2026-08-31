@@ -138,7 +138,7 @@ function SequenceCard({ seq }: { seq: Sequence }) {
 
       {preview ? (
         <div className="fixed inset-0 z-[70] grid place-items-center p-4">
-          <button type="button" aria-label="Close preview" className="absolute inset-0 bg-granite-900/60 fade-in cursor-default" onClick={() => setPreview(null)} />
+          <button type="button" aria-label="Close preview" className="absolute inset-0 bg-dark/60 fade-in cursor-default" onClick={() => setPreview(null)} />
           <div className="rise-in relative bg-bone border-2 border-granite-900 shadow-hard w-full max-w-xl max-h-[85svh] overflow-y-auto thin-scroll" role="dialog" aria-modal="true">
             <div className="px-6 py-4 border-b-2 border-granite-900 flex items-center justify-between bg-granite-100/50">
               <p className="kicker text-granite-500">Preview · exactly as it lands in their inbox</p>

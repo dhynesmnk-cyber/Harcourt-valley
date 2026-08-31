@@ -79,7 +79,7 @@ function Triptych() {
                 style={{ maxHeight: isActive ? "96px" : "0px", opacity: isActive ? 1 : 0, transition: "max-height .6s var(--ease-soft), opacity .45s ease" }}
               >
                 <p className="text-sm text-granite-100 mt-3 max-w-[24rem]">{p.blurb}</p>
-                <span className="mt-4 inline-flex items-center gap-2.5 btn btn-sm bg-bone text-granite-900 pointer-events-none">
+                <span className="mt-4 inline-flex items-center gap-2.5 btn btn-sm bg-bone text-ink pointer-events-none">
                   Enter <ArrowRight className="w-4 h-4" />
                 </span>
               </div>
@@ -107,7 +107,7 @@ function Classic() {
         <div className="lg:col-span-6">
           <Reveal>
             <p className="kicker text-granite-500">Harcourt Valley · est. 1975</p>
-            <h1 className="font-display font-medium text-[2.6rem] leading-[1.02] sm:text-6xl xl:text-[4.4rem] mt-5 text-granite-900">
+            <h1 className="font-display font-medium text-[2.6rem] leading-[1.02] sm:text-6xl xl:text-[4.4rem] mt-5 text-ink">
               {config.heroHeadline.split(",").map((part, i, arr) => (
                 <span key={i}>
                   {part}

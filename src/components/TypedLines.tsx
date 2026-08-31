@@ -98,7 +98,7 @@ export function TypedLines({ page, dark = false, className = "" }: { page: Typed
   if (lines.length === 0) return null;
 
   const muted = dark ? "text-granite-300" : "text-granite-500";
-  const strong = dark ? "text-bone" : "text-granite-900";
+  const strong = dark ? "text-bone" : "text-ink";
 
   return (
     <div
@@ -151,7 +151,7 @@ export function TypedPreview({ lines }: { lines: TypedLine[] }) {
 
   return (
     <div aria-hidden="true" className="min-h-[4.5rem] flex flex-col justify-center">
-      <p className="font-display text-lg sm:text-xl leading-snug font-medium text-granite-900">
+      <p className="font-display text-lg sm:text-xl leading-snug font-medium text-ink">
         {line?.author ? <span className="text-granite-500">“</span> : null}
         {shown}
         {line?.author && done ? <span className="text-granite-500">”</span> : null}

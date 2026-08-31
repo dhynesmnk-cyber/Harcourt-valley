@@ -77,11 +77,11 @@ export default function JournalPost() {
         {/* Header */}
         <header className="max-w-3xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14">
           <nav aria-label="Breadcrumb" className="kicker text-granite-500 flex flex-wrap items-center gap-2">
-            <Link to="/" className="hover:text-granite-900">
+            <Link to="/" className="hover:text-ink">
               Home
             </Link>
             <span aria-hidden="true">/</span>
-            <Link to="/journal" className="hover:text-granite-900">
+            <Link to="/journal" className="hover:text-ink">
               Journal
             </Link>
             <span aria-hidden="true">/</span>

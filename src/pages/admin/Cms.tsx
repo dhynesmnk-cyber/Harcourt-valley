@@ -337,7 +337,12 @@ function AppearanceTab() {
   const [palette, setPalette] = useState(config.palette);
   const [font, setFont] = useState(config.displayFont);
   const [heroImage, setHeroImage] = useState(config.heroImage);
-  const dirty = palette !== config.palette || font !== config.displayFont || heroImage !== config.heroImage;
+  const [textColor, setTextColor] = useState(config.textColor);
+  const [bgLight, setBgLight] = useState(config.bgLight);
+  const [bgDark, setBgDark] = useState(config.bgDark);
+  const dirty =
+    palette !== config.palette || font !== config.displayFont || heroImage !== config.heroImage ||
+    textColor !== config.textColor || bgLight !== config.bgLight || bgDark !== config.bgDark;
 
   const heroOptions = ["vines", "cellarDoor", "wedding"] as const;
   const customHeroUrl = useStoredImage(config.customHeroImage);
@@ -466,6 +471,60 @@ function AppearanceTab() {
         </div>
       </fieldset>
 
+      <fieldset className="border-2 border-granite-900 bg-bone">
+        <legend className="ml-4 px-2 kicker text-granite-500 bg-bone">Text &amp; background colours</legend>
+        <div className="p-5">
+          <p className="text-xs text-granite-500 max-w-2xl">
+            Independent of the season palette above — these don't touch borders, shadows, or the accent colours. Just the colour of body
+            and heading text, the site's light surface, and its dark surfaces (the nav, the footer, dark buttons).
+          </p>
+          <div className="mt-4 grid sm:grid-cols-3 gap-4">
+            <div>
+              <label className="field-label" htmlFor="cms-text-color">
+                Text colour
+              </label>
+              <div className="flex items-center gap-2.5">
+                <input id="cms-text-color" type="color" className="w-12 h-10 border-2 border-granite-900 cursor-pointer" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+                <span className="text-xs font-mono text-granite-500 uppercase">{textColor}</span>
+              </div>
+              {textColor !== "#26231f" ? (
+                <button type="button" className="text-xs text-garnet hover:underline underline-offset-4 mt-1.5" onClick={() => setTextColor("#26231f")}>
+                  Reset to default
+                </button>
+              ) : null}
+            </div>
+            <div>
+              <label className="field-label" htmlFor="cms-bg-light">
+                Light background
+              </label>
+              <div className="flex items-center gap-2.5">
+                <input id="cms-bg-light" type="color" className="w-12 h-10 border-2 border-granite-900 cursor-pointer" value={bgLight} onChange={(e) => setBgLight(e.target.value)} />
+                <span className="text-xs font-mono text-granite-500 uppercase">{bgLight}</span>
+              </div>
+              {bgLight !== "#f6f2e9" ? (
+                <button type="button" className="text-xs text-garnet hover:underline underline-offset-4 mt-1.5" onClick={() => setBgLight("#f6f2e9")}>
+                  Reset to default
+                </button>
+              ) : null}
+            </div>
+            <div>
+              <label className="field-label" htmlFor="cms-bg-dark">
+                Dark background
+              </label>
+              <div className="flex items-center gap-2.5">
+                <input id="cms-bg-dark" type="color" className="w-12 h-10 border-2 border-granite-900 cursor-pointer" value={bgDark} onChange={(e) => setBgDark(e.target.value)} />
+                <span className="text-xs font-mono text-granite-500 uppercase">{bgDark}</span>
+              </div>
+              {bgDark !== "#26231f" ? (
+                <button type="button" className="text-xs text-garnet hover:underline underline-offset-4 mt-1.5" onClick={() => setBgDark("#26231f")}>
+                  Reset to default
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
       <SitePhotosPanel />
 
       <div className="flex items-center gap-4">
@@ -474,7 +533,7 @@ function AppearanceTab() {
           className="btn btn-primary"
           disabled={!dirty}
           onClick={() => {
-            updateConfig({ palette, displayFont: font, heroImage });
+            updateConfig({ palette, displayFont: font, heroImage, textColor, bgLight, bgDark });
             toast("Appearance saved — the whole site just changed.");
           }}
         >
@@ -506,7 +565,7 @@ export function CmsView() {
             type="button"
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
-            className={`px-5 py-2.5 font-label text-[0.78rem] font-semibold uppercase tracking-[0.1em] min-h-[44px] transition-colors ${tab === t.id ? "bg-granite-900 text-bone" : "hover:bg-granite-100"} ${i > 0 ? "border-l-2 border-granite-900" : ""}`}
+            className={`px-5 py-2.5 font-label text-[0.78rem] font-semibold uppercase tracking-[0.1em] min-h-[44px] transition-colors ${tab === t.id ? "bg-dark text-bone" : "hover:bg-granite-100"} ${i > 0 ? "border-l-2 border-granite-900" : ""}`}
           >
             {t.label}
           </button>
