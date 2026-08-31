@@ -136,8 +136,12 @@ Deno.serve(async (req) => {
   try {
     places = await textSearch(QUERY_BY_KIND[kind], apiKey);
   } catch (e) {
-    console.error("Places text search error:", e);
-    return json({ error: "The search failed. Try again in a moment." }, 502);
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("Places text search error:", detail);
+    // Only a signed-in admin ever sees this response, so the real reason from
+    // Google is safe to pass through — "The search failed" alone left no way
+    // to tell a wrong/misconfigured API key apart from Google being down.
+    return json({ error: `The search failed: ${detail}` }, 502);
   }
 
   const open = places.filter((p) => p.business_status !== "CLOSED_PERMANENTLY" && p.geometry?.location);
